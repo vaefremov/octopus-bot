@@ -1,0 +1,24 @@
+# Octopus Bot Configuration
+
+# Long-running scripts that stream output to the user
+long_running_scripts:
+  - name: deploy
+    path: ./scripts/deploy.sh
+  - name: logs
+    path: ./scripts/tail_logs.sh
+
+# One-time scripts that run once and return output
+one_time_scripts:
+  - name: health-check
+    path: ./scripts/health_check.sh
+  - name: backup
+    path: ./scripts/backup.sh
+
+# Devices/paths to monitor for disk usage
+monitored_devices:
+  - name: root
+    path: /
+    alert_threshold: 85
+  - name: home
+    path: /home
+    alert_threshold: 80

@@ -1,0 +1,40 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+octopus_bot.log
+
+# Configuration (use example for repo)
+config/config.yaml
+config/*.yaml
+!config/config.example.yaml
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Temp files
+*.tmp
+.DS_Store
