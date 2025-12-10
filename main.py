@@ -21,6 +21,11 @@ logging.basicConfig(
     ],
 )
 
+# Suppress verbose logs from external libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("telegram.ext").setLevel(logging.WARNING)
+logging.getLogger("telegram.vendor.ptb_urllib3.urllib3.connectionpool").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 
