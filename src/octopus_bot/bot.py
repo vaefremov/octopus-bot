@@ -38,6 +38,7 @@ class OctopusBotHandler:
         self.app.add_handler(CommandHandler("help", self.help_command))
         self.app.add_handler(CommandHandler("status", self.status_command))
         self.app.add_handler(CommandHandler("run", self.run_command))
+        self.app.add_handler(CommandHandler("stream", self.stream_command))
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command."""
@@ -51,7 +52,8 @@ class OctopusBotHandler:
         """Handle /help command."""
         help_text = (
             "/status - Get server status (CPU load, disk usage)\n"
-            "/run <script_name> - Run a script (once)\n"
+            "/run <script_name> - Run a one-time script\n"
+            "/stream <script_name> - Run a long-running script with streaming output\n"
             "/start - Start the bot\n"
             "/help - Show this help message"
         )
@@ -144,6 +146,19 @@ class OctopusBotHandler:
         except Exception as e:
             logger.error(f"Error running script {script_name}: {e}")
             await update.message.reply_text(f"❌ Error running script: {e}")
+
+    async def stream_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /stream command - run a long-running script with streaming output."""
+        if not context.args:
+            available = ', '.join([s.name for s in self.config.long_running_scripts]) if self.config.long_running_scripts else 'None configured'
+            await update.message.reply_text(
+                "Usage: /stream <script_name>\n"
+                f"Available scripts: {available}"
+            )
+            return
+
+        script_name = context.args[0]
+        await self.run_streaming(update, script_name)
 
     async def run_streaming(
         self, update: Update, script_name: str

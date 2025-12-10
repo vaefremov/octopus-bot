@@ -68,6 +68,7 @@ Telegram bot command handlers and message routing.
 - `help_command()`: Handle /help command
 - `status_command()`: Handle /status command (reports CPU and disk)
 - `run_command()`: Handle /run command (executes one-time scripts)
+- `stream_command()`: Handle /stream command (executes long-running scripts with streaming)
 - `run_streaming()`: Execute and stream long-running script output
 - `start()`: Start the bot and begin polling
 - `stop()`: Stop the bot

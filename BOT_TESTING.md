@@ -26,9 +26,13 @@ Once you've found the bot, try these commands:
 - `/help` - See available commands
 - `/status` - Get server status (CPU load, disk usage)
 
-#### Script Commands
-- `/run health-check` - Run health check script
-- `/run backup` - Run backup script
+#### One-Time Script Commands
+- `/run health-check` - Run health check script (once)
+- `/run backup` - Run backup script (once)
+
+#### Long-Running Script Commands
+- `/stream deploy` - Run deployment script with streaming output
+- `/stream logs` - Stream log output in real-time
 
 ### 3. Expected Responses
 
