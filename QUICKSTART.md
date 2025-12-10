@@ -71,6 +71,8 @@ Open Telegram and find your bot (search for its username).
 3. `/status` - Check server status (CPU load, disk usage)
 4. `/run health-check` - Run the example health check script
 5. `/run backup` - Run the example backup script
+6. `/subscribe` - Subscribe to broadcast messages
+7. `/unsubscribe` - Unsubscribe from broadcast messages
 
 ## Example Config for Testing
 

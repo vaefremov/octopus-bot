@@ -1,8 +1,11 @@
 """Telegram bot handler for Octopus Bot."""
 
 import asyncio
+import json
 import logging
+import os
 from datetime import datetime
+from typing import Set
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -30,7 +33,30 @@ class OctopusBotHandler:
         """
         self.config = config
         self.app = Application.builder().token(config.telegram_token).build()
+        self.subscribers: Set[int] = set()
+        self.first_subscriber: int | None = None
+        self.subscribers_file = "subscribers.json"
+        self._load_subscribers()
         self._setup_handlers()
+
+    def _load_subscribers(self) -> None:
+        """Load subscribers from file."""
+        try:
+            if os.path.exists(self.subscribers_file):
+                with open(self.subscribers_file, "r") as f:
+                    subscriber_ids = json.load(f)
+                    self.subscribers = set(subscriber_ids)
+                    logger.info(f"Loaded {len(self.subscribers)} subscribers")
+        except Exception as e:
+            logger.error(f"Failed to load subscribers: {e}")
+
+    def _save_subscribers(self) -> None:
+        """Save subscribers to file."""
+        try:
+            with open(self.subscribers_file, "w") as f:
+                json.dump(list(self.subscribers), f)
+        except Exception as e:
+            logger.error(f"Failed to save subscribers: {e}")
 
     def _setup_handlers(self) -> None:
         """Set up command handlers."""
@@ -39,13 +65,18 @@ class OctopusBotHandler:
         self.app.add_handler(CommandHandler("status", self.status_command))
         self.app.add_handler(CommandHandler("run", self.run_command))
         self.app.add_handler(CommandHandler("stream", self.stream_command))
+        # New broadcast-related handlers
+        self.app.add_handler(CommandHandler("subscribe", self.subscribe_command))
+        self.app.add_handler(CommandHandler("unsubscribe", self.unsubscribe_command))
+        self.app.add_handler(CommandHandler("broadcast", self.broadcast_command))
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command."""
         user = update.effective_user
         await update.message.reply_text(
             f"Hello {user.first_name}! I'm the Octopus Bot. "
-            "Use /help to see available commands."
+            "Use /help to see available commands.\n\n"
+            "Use /subscribe to receive broadcast messages."
         )
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -54,10 +85,101 @@ class OctopusBotHandler:
             "/status - Get server status (CPU load, disk usage)\n"
             "/run <script_name> - Run a one-time script\n"
             "/stream <script_name> - Run a long-running script with streaming output\n"
+            "/subscribe - Subscribe to broadcast messages\n"
+            "/unsubscribe - Unsubscribe from broadcast messages\n"
             "/start - Start the bot\n"
             "/help - Show this help message"
         )
+        
+        # Add admin commands for authorized users
+        if self._is_admin_user(update.effective_user.id):
+            help_text += "\n\n**Admin Commands:**\n"
+            help_text += "/broadcast <message> - Send broadcast to all subscribers"
+        
         await update.message.reply_text(help_text)
+
+    async def subscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /subscribe command."""
+        user_id = update.effective_user.id
+        if user_id not in self.subscribers:
+            self.subscribers.add(user_id)
+            # Track the first subscriber
+            if self.first_subscriber is None:
+                self.first_subscriber = user_id
+            self._save_subscribers()
+            await update.message.reply_text("✅ You have been subscribed to broadcast messages!")
+        else:
+            await update.message.reply_text("ℹ️ You are already subscribed to broadcast messages.")
+
+    async def unsubscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /unsubscribe command."""
+        user_id = update.effective_user.id
+        if user_id in self.subscribers:
+            self.subscribers.remove(user_id)
+            self._save_subscribers()
+            await update.message.reply_text("✅ You have been unsubscribed from broadcast messages.")
+        else:
+            await update.message.reply_text("ℹ️ You are not currently subscribed to broadcast messages.")
+
+    async def broadcast_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /broadcast command - send message to all subscribers."""
+        # Check if user is admin
+        if not self._is_admin_user(update.effective_user.id):
+            await update.message.reply_text("❌ You don't have permission to send broadcast messages.")
+            return
+
+        # Check if message is provided
+        if not context.args:
+            await update.message.reply_text("Usage: /broadcast <message>")
+            return
+
+        message = "📢 **Broadcast Message**\n\n" + " ".join(context.args)
+        
+        # Send broadcast to all subscribers
+        successful_sends = 0
+        failed_sends = 0
+        
+        for user_id in self.subscribers.copy():  # Use copy to avoid modification during iteration
+            try:
+                await self.app.bot.send_message(chat_id=user_id, text=message, parse_mode="Markdown")
+                successful_sends += 1
+            except Exception as e:
+                logger.error(f"Failed to send broadcast to user {user_id}: {e}")
+                failed_sends += 1
+                # Remove user if bot is blocked
+                if "bot was blocked" in str(e).lower():
+                    self.subscribers.discard(user_id)
+                    self._save_subscribers()
+
+        await update.message.reply_text(
+            f"✅ Broadcast sent!\n"
+            f"Successful: {successful_sends}\n"
+            f"Failed: {failed_sends}"
+        )
+
+    def _is_admin_user(self, user_id: int) -> bool:
+        """
+        Check if user is admin.
+        
+        Args:
+            user_id: Telegram user ID
+            
+        Returns:
+            True if user is admin, False otherwise
+        """
+        # For now, we can use environment variable or config
+        admin_users = os.getenv("ADMIN_USERS", "")
+        if admin_users:
+            try:
+                admin_ids = [int(id.strip()) for id in admin_users.split(",")]
+                return user_id in admin_ids
+            except ValueError:
+                pass
+        # Default: first user to interact with bot is admin
+        if self.first_subscriber is None:
+            return True  # First user is admin
+        # If there is a first subscriber, check if this user is the first one
+        return user_id == self.first_subscriber
 
     async def status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /status command - report server status."""
