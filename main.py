@@ -24,8 +24,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def main():
+def main():
     """Main entry point."""
+    bot = None
     try:
         # Load configuration
         logger.info("Loading configuration...")
@@ -37,7 +38,7 @@ async def main():
 
         # Start bot
         logger.info("Bot started. Press Ctrl+C to stop.")
-        await bot.start()
+        asyncio.run(bot.start())
 
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt, shutting down...")
@@ -47,4 +48,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

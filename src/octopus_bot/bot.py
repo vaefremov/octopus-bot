@@ -199,13 +199,28 @@ class OctopusBotHandler:
             await update.message.reply_text(f"❌ Error: {e}")
 
     async def start(self) -> None:
-        """Start the bot."""
+        """Start the bot and run polling indefinitely."""
         logger.info("Starting Octopus Bot...")
+        # Initialize the application
         await self.app.initialize()
         await self.app.start()
-        await self.app.updater.start_polling()
+        
+        # Start polling for updates
+        try:
+            await self.app.updater.start_polling(
+                allowed_updates=["message", "callback_query"]
+            )
+            # Keep polling running indefinitely
+            while True:
+                await asyncio.sleep(1)
+        finally:
+            # Cleanup on shutdown
+            await self.app.updater.stop_polling()
+            await self.app.stop()
+            await self.app.shutdown()
 
     async def stop(self) -> None:
         """Stop the bot."""
         logger.info("Stopping Octopus Bot...")
+        # Note: stop() is called automatically by run_polling on shutdown
         await self.app.stop()
