@@ -244,7 +244,7 @@ class OctopusBotHandler:
             return
 
         try:
-            logger.info(f"Executing periodic script: {script_name}")
+            logger.debug(f"Executing periodic script: {script_name}")
             
             # Execute the script (treat as one-time script)
             from .config import Script
