@@ -191,6 +191,11 @@ class OctopusBotHandler:
             title: Title of the broadcast
             output: Output content
         """
+        # Skip if output is empty
+        if not output or not output.strip():
+            logger.debug(f"Skipping broadcast for '{title}': output is empty")
+            return
+
         # Split output into chunks if too long
         if len(output) > 4000:
             chunks = [output[i : i + 4000] for i in range(0, len(output), 4000)]
