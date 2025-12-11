@@ -14,6 +14,16 @@ one_time_scripts:
   - name: backup
     path: ./scripts/backup.sh
 
+# Periodic scripts that run automatically on schedule
+# Output is broadcast to all subscribed users
+periodic_scripts:
+  - name: hourly-health
+    path: ./scripts/health_check.sh
+    interval: 3600  # Run every 3600 seconds (1 hour)
+  - name: daily-backup
+    path: ./scripts/backup.sh
+    interval: 86400  # Run every 86400 seconds (1 day)
+
 # Devices/paths to monitor for disk usage
 monitored_devices:
   - name: root

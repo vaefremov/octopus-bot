@@ -7,6 +7,8 @@ import os
 from datetime import datetime
 from typing import Set
 
+import schedule
+
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -181,6 +183,82 @@ class OctopusBotHandler:
         # If there is a first subscriber, check if this user is the first one
         return user_id == self.first_subscriber
 
+    async def broadcast_output(self, title: str, output: str) -> None:
+        """
+        Broadcast script output to all subscribers.
+
+        Args:
+            title: Title of the broadcast
+            output: Output content
+        """
+        # Split output into chunks if too long
+        if len(output) > 4000:
+            chunks = [output[i : i + 4000] for i in range(0, len(output), 4000)]
+        else:
+            chunks = [output]
+
+        for user_id in self.subscribers.copy():
+            try:
+                # Send title
+                await self.app.bot.send_message(
+                    chat_id=user_id,
+                    text=f"📢 **{title}**",
+                    parse_mode="Markdown"
+                )
+                
+                # Send output chunks
+                for i, chunk in enumerate(chunks):
+                    await self.app.bot.send_message(
+                        chat_id=user_id,
+                        text=f"```\n{chunk}\n```",
+                        parse_mode="Markdown"
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Failed to broadcast to user {user_id}: {e}")
+                # Remove user if bot is blocked
+                if "bot was blocked" in str(e).lower():
+                    self.subscribers.discard(user_id)
+                    self._save_subscribers()
+
+    async def execute_periodic_script(self, script_name: str) -> None:
+        """
+        Execute a periodic script and broadcast its output.
+
+        Args:
+            script_name: Name of the script to execute
+        """
+        # Find the script in periodic scripts
+        script = next(
+            (s for s in self.config.periodic_scripts if s.name == script_name),
+            None,
+        )
+
+        if not script:
+            logger.warning(f"Periodic script '{script_name}' not found in config")
+            return
+
+        try:
+            logger.info(f"Executing periodic script: {script_name}")
+            
+            # Execute the script (treat as one-time script)
+            from .config import Script
+            script_obj = Script(name=script.name, path=script.path, long_running=False)
+            output = await run_script_once(script_obj)
+
+            # Broadcast the output
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            title = f"Periodic Script: {script_name} ({timestamp})"
+            await self.broadcast_output(title, output)
+
+            logger.info(f"Periodic script '{script_name}' completed and broadcasted")
+
+        except Exception as e:
+            logger.error(f"Error executing periodic script '{script_name}': {e}")
+            # Broadcast error to subscribers
+            error_msg = f"Error executing periodic script '{script_name}': {e}"
+            await self.broadcast_output(f"Error: {script_name}", error_msg)
+
     async def status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /status command - report server status."""
         try:
@@ -342,19 +420,45 @@ class OctopusBotHandler:
         await self.app.initialize()
         await self.app.start()
         
+        # Schedule periodic scripts
+        self._schedule_periodic_scripts()
+        
         # Start polling for updates
         try:
-            await self.app.updater.start_polling(
-                allowed_updates=["message", "callback_query"]
+            # Start polling
+            polling_task = asyncio.create_task(
+                self.app.updater.start_polling(
+                    allowed_updates=["message", "callback_query"]
+                )
             )
-            # Keep polling running indefinitely
-            while True:
-                await asyncio.sleep(1)
+            
+            # Start scheduler task
+            scheduler_task = asyncio.create_task(self._run_scheduler())
+            
+            # Keep both running indefinitely
+            await asyncio.gather(polling_task, scheduler_task)
         finally:
             # Cleanup on shutdown
             await self.app.updater.stop_polling()
             await self.app.stop()
             await self.app.shutdown()
+
+    def _schedule_periodic_scripts(self) -> None:
+        """Schedule periodic scripts based on configuration."""
+        for script in self.config.periodic_scripts:
+            interval = script.interval
+            schedule.every(interval).seconds.do(
+                lambda script_name=script.name: asyncio.create_task(
+                    self.execute_periodic_script(script_name)
+                )
+            )
+            logger.info(f"Scheduled periodic script '{script.name}' every {interval} seconds")
+
+    async def _run_scheduler(self) -> None:
+        """Run the scheduler in the background."""
+        while True:
+            schedule.run_pending()
+            await asyncio.sleep(1)  # Check every second if something needs to run
 
     async def stop(self) -> None:
         """Stop the bot."""

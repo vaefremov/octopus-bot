@@ -18,6 +18,15 @@ class Script:
 
 
 @dataclass
+class PeriodicScript:
+    """Configuration for a periodic script."""
+
+    name: str
+    path: str
+    interval: int  # in seconds (e.g., 3600 for hourly)
+
+
+@dataclass
 class DeviceMonitor:
     """Configuration for device monitoring."""
 
@@ -34,6 +43,7 @@ class BotConfig:
     long_running_scripts: list[Script]
     one_time_scripts: list[Script]
     monitored_devices: list[DeviceMonitor]
+    periodic_scripts: list[PeriodicScript]
 
 
 def load_config(config_path: str | None = None) -> BotConfig:
@@ -101,9 +111,21 @@ def load_config(config_path: str | None = None) -> BotConfig:
             )
         )
 
+    # Parse periodic scripts
+    periodic_scripts = []
+    for script_data in data.get("periodic_scripts", []):
+        periodic_scripts.append(
+            PeriodicScript(
+                name=script_data["name"],
+                path=script_data["path"],
+                interval=script_data["interval"],
+            )
+        )
+
     return BotConfig(
         telegram_token=telegram_token,
         long_running_scripts=long_running_scripts,
         one_time_scripts=one_time_scripts,
         monitored_devices=monitored_devices,
+        periodic_scripts=periodic_scripts,
     )

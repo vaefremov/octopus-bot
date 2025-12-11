@@ -11,7 +11,7 @@ from telegram import User
 from telegram.ext import Application, CommandHandler
 
 from octopus_bot.bot import OctopusBotHandler
-from octopus_bot.config import BotConfig, DeviceMonitor, Script
+from octopus_bot.config import BotConfig, DeviceMonitor, PeriodicScript, Script
 
 
 @pytest.fixture
@@ -22,6 +22,7 @@ def mock_config():
         long_running_scripts=[],
         one_time_scripts=[],
         monitored_devices=[],
+        periodic_scripts=[],
     )
 
 
