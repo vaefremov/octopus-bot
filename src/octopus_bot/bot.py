@@ -254,9 +254,13 @@ class OctopusBotHandler:
             # Broadcast the output
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             title = f"Periodic Script: {script_name} ({timestamp})"
-            await self.broadcast_output(title, output)
-
-            logger.info(f"Periodic script '{script_name}' completed and broadcasted")
+            
+            # Check if output is empty before broadcasting
+            if not output or not output.strip():
+                logger.debug(f"Periodic script '{script_name}' produced empty output, skipping broadcast")
+            else:
+                await self.broadcast_output(title, output)
+                logger.info(f"Periodic script '{script_name}' completed and broadcasted")
 
         except Exception as e:
             logger.error(f"Error executing periodic script '{script_name}': {e}")
