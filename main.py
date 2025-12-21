@@ -11,22 +11,11 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from octopus_bot.bot import OctopusBotHandler
 from octopus_bot.config import load_config
 
+# Timed rotating file handler will be configured below
 from logging.handlers import TimedRotatingFileHandler
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("octopus_bot.log"),
-        logging.StreamHandler(),
-    ],
-)
 
 # Suppress verbose logs from external libraries
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
-from pathlib import Path
 log_dir = Path("logs")
 log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -43,6 +32,9 @@ root_logger = logging.getLogger()
 root_logger.setLevel(logging.INFO)
 root_logger.addHandler(file_handler)
 root_logger.addHandler(console_handler)
+
+# Module logger for this script
+logger = logging.getLogger(__name__)
 
 
 def main():
