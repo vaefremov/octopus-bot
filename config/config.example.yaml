@@ -20,6 +20,8 @@ periodic_scripts:
   - name: hourly-health
     path: ./scripts/health_check.sh
     interval: 3600  # Run every 3600 seconds (1 hour)
+    # Alternatively, you can schedule a script to run daily at a specific time:
+    # time: "02:30"  # Run daily at 02:30 (HH:MM 24-hour)
   - name: daily-backup
     path: ./scripts/backup.sh
     interval: 86400  # Run every 86400 seconds (1 day)

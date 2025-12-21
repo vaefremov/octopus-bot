@@ -13,6 +13,7 @@ from octopus_bot.config import load_config
 
 # Configure logging
 logging.basicConfig(
+from logging.handlers import TimedRotatingFileHandler
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
@@ -23,10 +24,20 @@ logging.basicConfig(
 
 # Suppress verbose logs from external libraries
 logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("telegram.ext").setLevel(logging.WARNING)
-logging.getLogger("telegram.vendor.ptb_urllib3.urllib3.connectionpool").setLevel(logging.WARNING)
 
-logger = logging.getLogger(__name__)
+log_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_handler = TimedRotatingFileHandler("octopus_bot.log", when="midnight", backupCount=7)
+file_handler.setFormatter(log_formatter)
+file_handler.setLevel(logging.INFO)
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+console_handler.setLevel(logging.INFO)
+
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(file_handler)
+root_logger.addHandler(console_handler)
 
 
 def main():

@@ -455,13 +455,30 @@ class OctopusBotHandler:
     def _schedule_periodic_scripts(self) -> None:
         """Schedule periodic scripts based on configuration."""
         for script in self.config.periodic_scripts:
-            interval = script.interval
-            schedule.every(interval).seconds.do(
-                lambda script_name=script.name: asyncio.create_task(
-                    self.execute_periodic_script(script_name)
+            # If a specific daily time is provided (HH:MM), schedule at that time
+            if getattr(script, "time", None):
+                try:
+                    schedule.every().day.at(script.time).do(
+                        lambda script_name=script.name: asyncio.create_task(
+                            self.execute_periodic_script(script_name)
+                        )
+                    )
+                    logger.info(f"Scheduled periodic script '{script.name}' daily at {script.time}")
+                    continue
+                except Exception as e:
+                    logger.error(f"Failed to schedule '{script.name}' at time '{script.time}': {e}")
+
+            # Fallback: schedule by interval in seconds (if provided)
+            if script.interval:
+                interval = script.interval
+                schedule.every(interval).seconds.do(
+                    lambda script_name=script.name: asyncio.create_task(
+                        self.execute_periodic_script(script_name)
+                    )
                 )
-            )
-            logger.info(f"Scheduled periodic script '{script.name}' every {interval} seconds")
+                logger.info(f"Scheduled periodic script '{script.name}' every {interval} seconds")
+            else:
+                logger.warning(f"Periodic script '{script.name}' has no interval or time configured; skipping")
 
     async def _run_scheduler(self) -> None:
         """Run the scheduler in the background."""
