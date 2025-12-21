@@ -16,7 +16,23 @@ free -h
 echo ""
 
 echo "--- Disk Usage ---"
-df -h
+# Define filesystems to check
+filesystems=(/ /tmp /hdd1 /hdd2 /hdd5 /ssd /var)
+
+# Filter out filesystems that don't exist
+existing_filesystems=()
+for fs in "${filesystems[@]}"; do
+    if [ -e "$fs" ]; then
+        existing_filesystems+=("$fs")
+    fi
+done
+
+# Check disk usage for existing filesystems
+if [ ${#existing_filesystems[@]} -gt 0 ]; then
+    df -h "${existing_filesystems[@]}"
+else
+    echo "No matching filesystems found"
+fi
 echo ""
 
 echo "--- Load Average ---"
