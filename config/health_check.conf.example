@@ -1,0 +1,16 @@
+# Example configuration for scripts/health_check.sh
+# This file can be used as a starting point for host-specific configuration.
+
+# Filesystems to check: pairs of <path> <min_free_percent>
+# Example: require at least 10% free on /, 5% on /tmp
+filesystems=(/ 10 /tmp 5 /var 5)
+
+# Processes to ensure are running: pairs of <process_name> <min_count>
+# Uses pgrep -f to count matching processes
+processes=(nginx 1 mysql 2)
+
+# Swap usage threshold (percent). If swap usage > this value a report is emitted.
+swap_threshold=20
+
+# You can override this file location by passing -c /path/to/config to the script
+# or by setting the HEALTH_CHECK_CONFIG environment variable.

@@ -5,15 +5,59 @@
 
 set -euo pipefail
 
-# Configurable checks (edit as needed)
-# Filesystems and minimum free percent pairs: path min_free
-filesystems=(/ 10 /tmp 5 /var 5)
+# Usage: health_check.sh [-c /path/to/config]
+# The config file is a shell fragment that can override the following variables:
+# - filesystems: array of pairs (path min_free_percent)
+# - processes: array of pairs (name min_count)
+# - swap_threshold: integer percent threshold
+# Example config (shell syntax):
+# filesystems=(/ 10 /tmp 5 /var 5)
+# processes=(nginx 1 mysql 2)
+# swap_threshold=20
 
-# Processes and minimum counts pairs: name min_count
-processes=(nginx 1 mysql 2)
+# Resolve default config path: accept -c, then env HEALTH_CHECK_CONFIG, then ./health_check.conf, then /etc/octopus/health_check.conf
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+DEFAULT_CONFIG1="$SCRIPT_DIR/health_check.conf"
+DEFAULT_CONFIG2="/etc/octopus/health_check.conf"
 
-# Swap usage threshold percent (report when swap usage > threshold)
-swap_threshold=20
+CONFIG="${HEALTH_CHECK_CONFIG:-}" # allow env override
+
+while getopts ":c:" opt; do
+  case $opt in
+    c)
+      CONFIG="$OPTARG"
+      ;;
+    \?)
+      echo "Usage: $0 [-c config_file]" >&2
+      exit 2
+      ;;
+  esac
+done
+
+# If no config provided, pick defaults
+if [ -z "$CONFIG" ]; then
+  if [ -f "$DEFAULT_CONFIG1" ]; then
+    CONFIG="$DEFAULT_CONFIG1"
+  elif [ -f "$DEFAULT_CONFIG2" ]; then
+    CONFIG="$DEFAULT_CONFIG2"
+  fi
+fi
+
+if [ -n "${CONFIG:-}" ] && [ -f "$CONFIG" ]; then
+  # shellcheck source=/dev/null
+  source "$CONFIG"
+fi
+
+# Set sensible defaults if variables not provided by config
+if ! declare -p filesystems >/dev/null 2>&1; then
+  filesystems=(/ 10 /tmp 5 /var 5)
+fi
+
+if ! declare -p processes >/dev/null 2>&1; then
+  processes=(nginx 1 mysql 2)
+fi
+
+: ${swap_threshold:=20}
 
 report=""
 
