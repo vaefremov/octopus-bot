@@ -110,6 +110,48 @@ handler = RotatingFileHandler(
 )
 ```
 
+### Current configuration (daily rotation)
+
+This project uses a daily rotating file handler by default. The handler rotates the log at midnight and keeps 7 days of history. The current implementation in `main.py` looks like:
+
+```python
+from logging.handlers import TimedRotatingFileHandler
+import logging
+
+log_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_handler = TimedRotatingFileHandler("octopus_bot.log", when="midnight", backupCount=7)
+file_handler.setFormatter(log_formatter)
+file_handler.setLevel(logging.INFO)
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+console_handler.setLevel(logging.INFO)
+
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(file_handler)
+root_logger.addHandler(console_handler)
+```
+
+Rotated files will be created in the working directory by default and will have timestamps appended depending on the handler's settings (for example: `octopus_bot.log.2025-12-21`).
+
+### Switching to size-based rotation
+
+If you prefer rotating based on file size instead of time, replace the `TimedRotatingFileHandler` with `RotatingFileHandler` and configure `maxBytes` and `backupCount` as shown above.
+
+### Custom log directory
+
+To keep logs in a dedicated directory, create the directory on startup and point the file handler at `logs/octopus_bot.log`:
+
+```python
+from pathlib import Path
+log_dir = Path("logs")
+log_dir.mkdir(parents=True, exist_ok=True)
+file_handler = TimedRotatingFileHandler(str(log_dir / "octopus_bot.log"), when="midnight", backupCount=7)
+```
+
+Make sure your deployment environment has write permission to the chosen log directory.
+
 ## Sample Log Output
 
 Here's what you'll see when the bot starts:
