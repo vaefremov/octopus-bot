@@ -5,13 +5,15 @@
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 CONFIG="$SCRIPT_DIR/backup.conf"
 
-WHERE_BACKUP=/hdd5/BACKUPS
-DB_NAME1=octopus
 
 if [ -n "${CONFIG:-}" ] && [ -f "$CONFIG" ]; then
   # shellcheck source=/dev/null
   source "$CONFIG"
 fi
+
+WHERE_BACKUP=${WHERE_BACKUP:-/hdd5/BACKUPS}
+DB_NAME1=${DB_NAME1:-octopus}
+DB_NAME2=${DB_NAME2:-octopus_test}
 
 export PGPASSWORD=${PGPASSWORD:-"password_should_be_secret"}
 export PGUSER=${PGUSER:-postgres}
@@ -20,7 +22,7 @@ export PGHOST=${PGHOST:-localhost}
 echo "Starting backup process..."
 echo "Backup will be created here: $WHERE_BACKUP"
 sleep 1
-BACKUP_NAME="${DB_NAME1}_"$(date +%Y-%m-%d_%H-%M-%S).sql.gz
+BACKUP_NAME="${DB_NAME1}_"$(date +%Y-%m-%d_%H-%M-%S).sql
 BACKUP_TO=$WHERE_BACKUP/$BACKUP_NAME
 echo "Backing up PostgreSQL database to $BACKUP_TO"
 
@@ -29,4 +31,4 @@ gzip $BACKUP_TO
 
 echo "$DB_NAME1 Backup completed successfully!"
 
-echo "Backup size: $(du -h $BACKUP_TO | awk '{print $1}')"
+echo "Backup size: $(du -h ${BACKUP_TO}.gz | awk '{print $1}')"
