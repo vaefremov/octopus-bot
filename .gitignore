@@ -38,4 +38,4 @@ htmlcov/
 # Temp files
 *.tmp
 .DS_Store
-scripts/health_check.conf
+scripts/*.conf
