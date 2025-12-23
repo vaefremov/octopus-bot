@@ -26,7 +26,7 @@ BACKUP_NAME="${DB_NAME1}_"$(date +%Y-%m-%d_%H-%M-%S).sql
 BACKUP_TO=$WHERE_BACKUP/$BACKUP_NAME
 echo "Backing up PostgreSQL database to $BACKUP_TO"
 
-pg_dump  --file=$BACKUP_TO --create --clean --verbose $DB_NAME1
+pg_dump  --file=$BACKUP_TO --create --clean  $DB_NAME1
 gzip $BACKUP_TO
 
 echo "$DB_NAME1 Backup completed successfully!"
