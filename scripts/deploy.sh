@@ -1,46 +1,46 @@
-#!/bin/bash
+#!/bin/bash -x
 # Example long-running script that simulates deployment
 # This script demonstrates streaming output via the bot
 
-echo "Starting deployment process..."
-sleep 1
+export PGPASSWORD="qwerty"
+export PGUSER=postgres
+export PGHOST=localhost
 
-echo "Step 1: Checking prerequisites..."
-sleep 1
-echo "  ✓ Git installed"
-echo "  ✓ Docker installed"
-echo "  ✓ Kubernetes cluster accessible"
-sleep 1
+PGDATABASE="testdb2"
+export PYTONPATH=/hdd1/DiPreview/DiBack1/
 
-echo "Step 2: Pulling latest code..."
-sleep 2
-echo "  ✓ Code pulled from main branch"
-sleep 1
+APP_HOME=/hdd1/DiPreview/DiBack1/
+WORK_DIR=/hdd5/BACKUPS
+REPOSITORY=/hdd1/DiPreview/Repositories/DI_projects/DiBack1/
 
-echo "Step 3: Building Docker image..."
-for i in {1..5}; do
-    echo "  Building layer $i/5..."
-    sleep 1
-done
-echo "  ✓ Docker image built successfully"
-sleep 1
+DI1_DATABASE_URL='postgresql://postgres:qwerty@localhost:5432/testdb2'
 
-echo "Step 4: Pushing to registry..."
-sleep 2
-echo "  ✓ Image pushed to registry"
-sleep 1
+. /hdd1/DiPreview/DiBack1/venv/bin/activate
 
-echo "Step 5: Deploying to Kubernetes..."
-sleep 2
-echo "  ✓ Deployment created"
-echo "  ✓ Pods are rolling out"
-sleep 2
+# 0. Stop preview server
 
-echo "Step 6: Verifying deployment..."
-sleep 1
-echo "  ✓ All pods are running"
-echo "  ✓ Health checks passing"
-sleep 1
+$APP_HOME/stop_g.sh -t preview
 
-echo "Deployment completed successfully!"
-echo "New version: v1.2.3"
+# 1. Recreate database
+
+cd $WORK_DIR
+
+psql < ./create_testdb2.sql
+
+python /hdd1/DiPreview/DiBack1/create_model.py
+
+# 2. Transfer data from octopus
+cd testdb_to_octopus
+rm *.sql
+./data_transfer_testdb2.sh
+
+# 3. Set up alembic
+cd $REPOSITORY
+VERSION=$(ls -tr1 alembic/versions/ | grep -v __pycache__ | tail -1 | sed 's/_.*$//')
+python init_alembic_version.py --version $VERSION   
+alembic upgrade head
+
+# 4. Start preview server
+cd $APP_HOME
+nohup $APP_HOME/start_g.sh -t preview -p 9991 -w 3 &
+
