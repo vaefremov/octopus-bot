@@ -61,6 +61,49 @@ fi
 
 report=""
 
+# If a deploy lockfile exists and the PID inside is alive, exit quietly with status 0
+# Lock path can be set via env `DEPLOY_LOCK` or `deploy_lock` variable in config.
+deploy_lock_from_env=${DEPLOY_LOCK:-}
+deploy_lock_from_config=${deploy_lock:-}
+
+check_deploy_lock() {
+  local lockpath
+  if [ -n "$deploy_lock_from_env" ]; then
+    lockpath="$deploy_lock_from_env"
+  elif [ -n "$deploy_lock_from_config" ]; then
+    lockpath="$deploy_lock_from_config"
+  else
+    lockpath="/tmp/octopus_deploy.lock"
+    # also check script-local default
+    if [ -f "$SCRIPT_DIR/.deploy.lock" ]; then
+      lockpath="$SCRIPT_DIR/.deploy.lock"
+    fi
+  fi
+
+  if [ ! -f "$lockpath" ]; then
+    return 1
+  fi
+
+  pid=$(cat "$lockpath" 2>/dev/null || true)
+  if [ -z "$pid" ]; then
+    # empty or unreadable lockfile
+    return 1
+  fi
+
+  # Check if PID is alive
+  if kill -0 "$pid" 2>/dev/null; then
+    return 0
+  fi
+
+  # Stale lockfile (pid not running)
+  return 1
+}
+
+# If a live deploy lock is present, exit silently
+if check_deploy_lock; then
+  exit 0
+fi
+
 check_filesystems() {
   local i=0
   while [ $i -lt ${#filesystems[@]} ]; do
