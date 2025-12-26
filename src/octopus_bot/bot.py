@@ -39,6 +39,11 @@ class OctopusBotHandler:
         self.first_subscriber: int | None = None
         self.subscribers_file = "subscribers.json"
         self._load_subscribers()
+        # Chunk size for broadcast messages (chars). Read from config (default 4000).
+        try:
+            self.chunk_size = int(getattr(config, "broadcast_chunk_size", 4000) or 4000)
+        except Exception:
+            self.chunk_size = 4000
         self._setup_handlers()
 
     def _load_subscribers(self) -> None:
@@ -197,8 +202,8 @@ class OctopusBotHandler:
             return
 
         # Split output into chunks if too long
-        if len(output) > 4000:
-            chunks = [output[i : i + 4000] for i in range(0, len(output), 4000)]
+        if len(output) > self.chunk_size:
+            chunks = [output[i : i + self.chunk_size] for i in range(0, len(output), self.chunk_size)]
         else:
             chunks = [output]
 
@@ -226,6 +231,45 @@ class OctopusBotHandler:
                     self.subscribers.discard(user_id)
                     self._save_subscribers()
 
+    async def broadcast_chunks(self, title: str, chunks: list[str], send_title: bool = True) -> None:
+        """
+        Broadcast pre-chunked output to subscribers. Title is sent once if `send_title` is True.
+
+        Args:
+            title: Title of the broadcast
+            chunks: List of output chunks (strings)
+            send_title: Whether to send the title before chunks
+        """
+        # Skip if chunks are empty or contain only whitespace
+        if not chunks or all(not (c and c.strip()) for c in chunks):
+            logger.debug(f"Skipping broadcast for '{title}': chunks are empty")
+            return
+
+        for user_id in self.subscribers.copy():
+            try:
+                if send_title:
+                    await self.app.bot.send_message(
+                        chat_id=user_id,
+                        text=f"📢 **{title}**",
+                        parse_mode="Markdown",
+                    )
+
+                for chunk in chunks:
+                    if not chunk or not chunk.strip():
+                        continue
+                    await self.app.bot.send_message(
+                        chat_id=user_id,
+                        text=f"```\n{chunk}\n```",
+                        parse_mode="Markdown",
+                    )
+
+            except Exception as e:
+                logger.error(f"Failed to broadcast to user {user_id}: {e}")
+                # Remove user if bot is blocked
+                if "bot was blocked" in str(e).lower():
+                    self.subscribers.discard(user_id)
+                    self._save_subscribers()
+
     async def execute_periodic_script(self, script_name: str) -> None:
         """
         Execute a periodic script and broadcast its output.
@@ -245,22 +289,40 @@ class OctopusBotHandler:
 
         try:
             logger.debug(f"Executing periodic script: {script_name}")
-            
-            # Execute the script (treat as one-time script)
-            from .config import Script
-            script_obj = Script(name=script.name, path=script.path, long_running=False)
-            output = await run_script_once(script_obj)
 
-            # Broadcast the output
+            # Execute the script as streaming
+            from .config import Script
+            script_obj = Script(name=script.name, path=script.path, long_running=True)
+
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             title = f"Periodic Script: {script_name} ({timestamp})"
-            
-            # Check if output is empty before broadcasting
-            if not output or not output.strip():
-                logger.debug(f"Periodic script '{script_name}' produced empty output, skipping broadcast")
-            else:
-                await self.broadcast_output(title, output)
+
+            buffer = ""
+            sent_any = False
+            first_send = True
+
+            async for line in run_script_streaming(script_obj):
+                buffer += line + "\n"
+
+                # Send buffered output in chunks
+                if len(buffer) > self.chunk_size:
+                    # Broadcast this chunk (send title only for first send)
+                    await self.broadcast_chunks(title, [buffer], send_title=first_send)
+                    first_send = False
+                    sent_any = True
+                    buffer = ""
+
+            # Send remaining buffer
+            if buffer:
+                await self.broadcast_chunks(title, [buffer], send_title=first_send)
+                sent_any = True
+
+            if sent_any:
+                # Final completion notification to subscribers
+                await self.broadcast_chunks(title, [f"✅ Script '{script_name}' completed."], send_title=False)
                 logger.info(f"Periodic script '{script_name}' completed and broadcasted")
+            else:
+                logger.debug(f"Periodic script '{script_name}' produced empty output, skipping broadcast")
 
         except Exception as e:
             logger.error(f"Error executing periodic script '{script_name}': {e}")
@@ -339,8 +401,8 @@ class OctopusBotHandler:
             output = await run_script_once(script)
 
             # Split output into chunks if too long (Telegram limit is ~4096 chars)
-            if len(output) > 4000:
-                chunks = [output[i : i + 4000] for i in range(0, len(output), 4000)]
+            if len(output) > self.chunk_size:
+                chunks = [output[i : i + self.chunk_size] for i in range(0, len(output), self.chunk_size)]
                 for i, chunk in enumerate(chunks):
                     await update.message.reply_text(
                         f"📄 Output (part {i + 1}/{len(chunks)}):\n```\n{chunk}\n```",
@@ -400,7 +462,7 @@ class OctopusBotHandler:
                 buffer += line + "\n"
 
                 # Send buffered output in chunks
-                if len(buffer) > 3000:
+                if len(buffer) > self.chunk_size:
                     await update.message.reply_text(
                         f"📄 Output:\n```\n{buffer}\n```",
                         parse_mode="Markdown",

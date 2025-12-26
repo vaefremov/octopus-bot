@@ -86,6 +86,22 @@ Common intervals (in seconds):
 4. **Broadcasting** - Output is sent to all subscribers
 5. **Logging** - Execution is logged with timestamps
 
+### Streaming and Chunking
+
+Periodic scripts are executed as streaming commands; output is forwarded to subscribers as it arrives. The bot chunks long outputs to fit within Telegram's message size limits.
+
+You can control the per-message chunk size via the YAML configuration key `broadcast_chunk_size` in `config/config.yaml` (default `4000`). Example:
+
+```yaml
+broadcast_chunk_size: 4000
+```
+
+After a periodic script finishes, subscribers receive a final completion notice such as:
+
+```
+✅ Script 'health-check' completed.
+```
+
 ### Example Output
 
 When a periodic script runs, subscribers receive:

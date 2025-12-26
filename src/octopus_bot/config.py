@@ -45,6 +45,7 @@ class BotConfig:
     one_time_scripts: list[Script]
     monitored_devices: list[DeviceMonitor]
     periodic_scripts: list[PeriodicScript]
+    broadcast_chunk_size: int = 4000
 
 
 def load_config(config_path: str | None = None) -> BotConfig:
@@ -130,4 +131,5 @@ def load_config(config_path: str | None = None) -> BotConfig:
         one_time_scripts=one_time_scripts,
         monitored_devices=monitored_devices,
         periodic_scripts=periodic_scripts,
+        broadcast_chunk_size=int(data.get("broadcast_chunk_size", 4000)),
     )

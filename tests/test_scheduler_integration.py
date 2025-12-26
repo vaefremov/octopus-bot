@@ -41,19 +41,21 @@ periodic_scripts:
 
         handler = OctopusBotHandler(config)
 
-        # Patch the run_script_once name used inside bot module
-        async def fake_run_script_once(script):
-            return "fake-output"
+        # Patch the run_script_streaming used inside bot module
+        async def fake_run_script_streaming(script):
+            # async generator yielding one line
+            yield "fake-output"
 
-        monkeypatch.setattr(bot_module, "run_script_once", fake_run_script_once)
+        monkeypatch.setattr(bot_module, "run_script_streaming", fake_run_script_streaming)
 
         broadcasts = []
 
-        async def fake_broadcast(title, output):
-            broadcasts.append((title, output))
+        async def fake_broadcast_chunks(title, chunks, send_title=True):
+            # collect joined chunks for assertion
+            broadcasts.append((title, "\n".join(chunks)))
 
         # Patch the instance method
-        monkeypatch.setattr(handler, "broadcast_output", fake_broadcast)
+        monkeypatch.setattr(handler, "broadcast_chunks", fake_broadcast_chunks)
 
         # Ensure no leftover scheduled jobs
         schedule.clear()
