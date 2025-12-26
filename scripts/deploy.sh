@@ -52,5 +52,11 @@ alembic upgrade head
 
 # 4. Start preview server
 cd $APP_HOME
-nohup $APP_HOME/start_g.sh -t preview -p 9991 -w 3 &
+# Start preview server in a new session so it won't be terminated when this script exits.
+# Redirect stdout/stderr to a log file and run in background; disown the job so it is not
+# tracked by the shell's job table.
+setsid "$APP_HOME/start_g.sh" -t preview -p 9991 -w 3 >"$APP_HOME/nohup.out" 2>&1 &
+pid="$!"
+# Remove job from shell job table (if supported) so it won't receive SIGHUP from the shell.
+disown "$pid" 2>/dev/null || true
 
