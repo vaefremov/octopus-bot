@@ -1,21 +1,31 @@
-#!/bin/bash -x
+#!/bin/bash 
 # Example long-running script that simulates deployment
 # This script demonstrates streaming output via the bot
 
-export PGPASSWORD="qwerty"
-export PGUSER=postgres
-export PGHOST=localhost
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+CONFIG="$SCRIPT_DIR/deploy.conf"
 
-PGDATABASE="testdb2"
+
+if [ -n "${CONFIG:-}" ] && [ -f "$CONFIG" ]; then
+  # shellcheck source=/dev/null
+  source "$CONFIG"
+fi
+
+export PGPASSWORD=${PGPASSWORD:-"password"}
+export PGUSER=${PGUSER:-postgres}
+export PGHOST=${PGHOST:-localhost}
+
+PGDATABASE=${PGDATABASE:-"testdb2"}
 export PYTONPATH=/hdd1/DiPreview/DiBack1/
 
-APP_HOME=/hdd1/DiPreview/DiBack1/
-WORK_DIR=/hdd5/BACKUPS
-REPOSITORY=/hdd1/DiPreview/Repositories/DI_projects/DiBack1/
+APP_HOME=${APP_HOME:-/hdd1/DiPreview/DiBack1/}
+WORK_DIR=${WORK_DIR:-/hdd5/BACKUPS}
+REPOSITORY=${REPOSITORY:-/hdd1/DiPreview/Repositories/DI_projects/DiBack1/}
 
-DI1_DATABASE_URL='postgresql://postgres:qwerty@localhost:5432/testdb2'
+export DI1_DATABASE_URL=${DI1_DATABASE_URL:-"postgresql://postgres:${PGPASSWORD}@localhost:5432/testdb2"}
+export DI1_DATABASE_ECHO=${DI1_DATABASE_ECHO:-false}
 
-. /hdd1/DiPreview/DiBack1/venv/bin/activate
+. $APP_HOME/venv/bin/activate
 
 # 0. Stop preview server
 
@@ -27,7 +37,7 @@ cd $WORK_DIR
 
 psql < ./create_testdb2.sql
 
-python /hdd1/DiPreview/DiBack1/create_model.py
+python $APP_HOME/create_model.py
 
 # 2. Transfer data from octopus
 cd testdb_to_octopus
