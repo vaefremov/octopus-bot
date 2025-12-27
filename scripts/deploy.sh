@@ -16,18 +16,16 @@ export PGUSER=${PGUSER:-postgres}
 export PGHOST=${PGHOST:-localhost}
 
 PGDATABASE=${PGDATABASE:-"testdb2"}
-export PYTONPATH=/hdd1/DiPreview/DiBack1/
 
-APP_HOME=${APP_HOME:-/hdd1/DiPreview/DiBack1/}
+APP_HOME=${APP_HOME:-/hdd1/DiPreview/DiBack2/}
 WORK_DIR=${WORK_DIR:-/hdd5/BACKUPS}
 REPOSITORY=${REPOSITORY:-/hdd1/DiPreview/Repositories/DI_projects/DiBack1/}
 
 export DI1_DATABASE_URL=${DI1_DATABASE_URL:-"postgresql://postgres:${PGPASSWORD}@localhost:5432/testdb2"}
 export DI1_DATABASE_ECHO=${DI1_DATABASE_ECHO:-false}
+export PYTONPATH=$APP_HOME
 
 . $APP_HOME/venv/bin/activate
-
-# 0. Stop preview server
 
 # Create a lockfile to indicate deployment in progress so health checks can skip reporting
 # Lock contains the PID of this deploy script. Paths can be overridden via
@@ -58,6 +56,8 @@ cleanup_deploy_lock() {
   rm -f "$DEPLOY_LOCK"
 }
 trap cleanup_deploy_lock EXIT
+
+# 0. Stop preview server
 
 $APP_HOME/stop_g.sh -t preview
 
