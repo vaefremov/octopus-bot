@@ -29,6 +29,7 @@ export PYTONPATH=$APP_HOME
 
 TAG=${TAG:-"test_run"}
 SERVER_PORT=${SERVER_PORT:-9992}
+WORKERS=${WORKERS:-3}
 
 # Create a lockfile to indicate deployment in progress so health checks can skip reporting
 # Lock contains the PID of this deploy script. Paths can be overridden via
@@ -88,7 +89,7 @@ cd $APP_HOME
 # Start preview server in a new session so it won't be terminated when this script exits.
 # Redirect stdout/stderr to a log file and run in background; disown the job so it is not
 # tracked by the shell's job table.
-setsid "$APP_HOME/start_g.sh" -t $TAG -p $SERVER_PORT -w 3 >"$APP_HOME/nohup.out" 2>&1 &
+setsid "$APP_HOME/start_g.sh" -t $TAG -p $SERVER_PORT -w $WORKERS >"$APP_HOME/nohup.out" 2>&1 &
 pid="$!"
 # Remove job from shell job table (if supported) so it won't receive SIGHUP from the shell.
 disown "$pid" 2>/dev/null || true
