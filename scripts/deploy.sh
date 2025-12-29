@@ -94,3 +94,4 @@ pid="$!"
 # Remove job from shell job table (if supported) so it won't receive SIGHUP from the shell.
 disown "$pid" 2>/dev/null || true
 
+echo "Started DI server with pid $pid, tag $TAG and port $SERVER_PORT. Log file: $APP_HOME/nohup.out"
