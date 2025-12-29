@@ -69,7 +69,7 @@ $APP_HOME/stop_g.sh -t $TAG
 
 cd $WORK_DIR
 
-psql < ./create_testdb2.sql
+psql -q < ./create_testdb2.sql
 
 python $APP_HOME/create_model.py
 
@@ -83,6 +83,11 @@ cd $REPOSITORY
 VERSION=$(ls -tr1 alembic/versions/ | grep -v __pycache__ | tail -1 | sed 's/_.*$//')
 python init_alembic_version.py --version $VERSION   
 alembic upgrade head
+
+python import_model_updates.py --clean model_updates.csv
+
+# 3.1 Collect orphaned files in data storage not mentioned in source database.
+# TBD!
 
 # 4. Start preview server
 cd $APP_HOME
