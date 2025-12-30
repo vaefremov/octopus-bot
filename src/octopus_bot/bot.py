@@ -393,6 +393,11 @@ class OctopusBotHandler:
             )
             return
 
+        # Enforce admin-only scripts
+        if getattr(script, "admin_only", False) and not self._is_admin_user(update.effective_user.id):
+            await update.message.reply_text("❌ You don't have permission to run this script.")
+            return
+
         try:
             await update.message.reply_text(
                 f"⏳ Running script '{script_name}'..."
@@ -450,6 +455,11 @@ class OctopusBotHandler:
             await update.message.reply_text(
                 f"❌ Long-running script '{script_name}' not found."
             )
+            return
+
+        # Enforce admin-only scripts for streaming
+        if getattr(script, "admin_only", False) and not self._is_admin_user(update.effective_user.id):
+            await update.message.reply_text("❌ You don't have permission to run this script.")
             return
 
         try:

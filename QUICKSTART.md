@@ -45,6 +45,10 @@ export TELEGRAM_TOKEN="your_token_here"
 
 # Optional: Set config file path (defaults to config/config.yaml)
 export CONFIG_FILE="config/config.yaml"
+ 
+# Optional: Set admin users (comma-separated Telegram user IDs)
+# Users listed here are allowed to run scripts marked as `admin_only: true`
+export ADMIN_USERS="123456789,987654321"
 ```
 
 ## 5. Run the Bot
@@ -81,6 +85,15 @@ The default `config/config.example.yaml` includes:
 **Long-running scripts:**
 - `deploy` - Simulates deployment process
 - `logs` - Simulates log streaming
+  
+Note: You can mark a script as admin-only in your YAML config so only admins may invoke it interactively:
+
+```yaml
+long_running_scripts:
+	- name: deploy
+		path: ./scripts/deploy.sh
+		admin_only: true
+```
 
 **One-time scripts:**
 - `health-check` - Shows system health

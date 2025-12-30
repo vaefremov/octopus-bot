@@ -15,6 +15,7 @@ class Script:
     name: str
     path: str
     long_running: bool = False
+    admin_only: bool = False
 
 
 @dataclass
@@ -89,6 +90,7 @@ def load_config(config_path: str | None = None) -> BotConfig:
                 name=script_data["name"],
                 path=script_data["path"],
                 long_running=True,
+                admin_only=script_data.get("admin_only", False),
             )
         )
 
@@ -99,6 +101,7 @@ def load_config(config_path: str | None = None) -> BotConfig:
                 name=script_data["name"],
                 path=script_data["path"],
                 long_running=False,
+                admin_only=script_data.get("admin_only", False),
             )
         )
 

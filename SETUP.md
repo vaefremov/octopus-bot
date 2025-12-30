@@ -68,6 +68,9 @@ monitored_devices:
 ```bash
 export TELEGRAM_TOKEN="your_bot_token_here"
 export CONFIG_FILE="config/config.yaml"  # Optional, defaults to config/config.yaml
+# Optional: list admin users (comma-separated Telegram user IDs)
+# These users may invoke scripts marked with `admin_only: true`
+export ADMIN_USERS="123456789,987654321"
 ```
 
 ### 6. Run the bot
@@ -156,6 +159,8 @@ chmod +x scripts/health_check.sh
    ```
 3. **Script Permissions**: Only allow the bot to run trusted scripts with appropriate permissions
 4. **User Access**: Restrict bot access by verifying user IDs in production
+  - Use the `ADMIN_USERS` environment variable to list admin Telegram user IDs (comma-separated).
+  - Mark sensitive scripts in the YAML config with `admin_only: true` to prevent interactive invocation by non-admins.
 
 ## Logging
 

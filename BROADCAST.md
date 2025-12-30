@@ -67,6 +67,31 @@ periodic_scripts:
     interval: 86400  # Run every 86400 seconds (1 day)
 ```
 
+### Script Permissions (admin_only)
+
+You can restrict individual scripts so that only administrators can invoke them via `/run` or `/stream` by adding the `admin_only: true` key to the script definition in your YAML config. This works for `one_time_scripts`, `long_running_scripts`, and `periodic_scripts` (periodic scripts still broadcast their output regardless of admin-only, but interactive runs are restricted).
+
+Example `one_time_scripts` entry:
+
+```yaml
+one_time_scripts:
+  - name: secure-maintenance
+    path: ./scripts/secure_maintenance.sh
+    admin_only: true
+```
+
+Example `long_running_scripts` entry:
+
+```yaml
+long_running_scripts:
+  - name: deploy
+    path: ./scripts/deploy.sh
+    admin_only: true
+```
+
+When a non-admin user attempts to run an `admin_only` script, the bot replies with a permission denied message.
+
+
 ### Interval Specifications
 
 Common intervals (in seconds):

@@ -4,6 +4,8 @@
 long_running_scripts:
   - name: deploy
     path: ./scripts/deploy.sh
+    # If true, only admin users may invoke this via /stream or /run
+    # admin_only: true
   - name: logs
     path: ./scripts/tail_logs.sh
 
@@ -11,6 +13,8 @@ long_running_scripts:
 one_time_scripts:
   - name: health-check
     path: ./scripts/health_check.sh
+    # Example of an admin-only one-time script
+    # admin_only: true
   - name: backup
     path: ./scripts/backup.sh
 

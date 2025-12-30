@@ -16,3 +16,18 @@ provided by config file.
 
 5. Broadcast messages to all subscribed users.
 
+## Admin users and admin-only scripts
+
+You can restrict certain scripts so that only administrators may invoke them interactively via `/run` or `/stream` by adding `admin_only: true` to the script entry in your YAML config (works for `one_time_scripts` and `long_running_scripts`).
+
+Admin users are determined by either setting the `ADMIN_USERS` environment variable to a comma-separated list of Telegram user IDs, e.g.: `export ADMIN_USERS="123456789,987654321"`, or by the default behavior where the first user to interact with the bot becomes the administrator. Periodic scripts run by the scheduler will still broadcast their output to subscribers; `admin_only` only restricts interactive invocation.
+
+Example:
+
+```yaml
+long_running_scripts:
+	- name: deploy
+		path: ./scripts/deploy.sh
+		admin_only: true
+```
+
