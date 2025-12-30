@@ -519,10 +519,34 @@ class OctopusBotHandler:
             # Keep both running indefinitely
             await asyncio.gather(polling_task, scheduler_task)
         finally:
-            # Cleanup on shutdown
-            await self.app.updater.stop_polling()
-            await self.app.stop()
-            await self.app.shutdown()
+            # Cleanup on shutdown - try stopping updater in a robust way
+            try:
+                # Prefer a public stop() if available
+                stop_method = getattr(self.app.updater, "stop", None)
+                if callable(stop_method):
+                    result = stop_method()
+                    if asyncio.iscoroutine(result):
+                        await result
+                else:
+                    # Fallbacks for different PTB versions
+                    stop_polling = getattr(self.app.updater, "stop_polling", None) or getattr(self.app.updater, "_stop_polling", None)
+                    if stop_polling:
+                        res = stop_polling()
+                        if asyncio.iscoroutine(res):
+                            await res
+            except Exception as e:
+                logger.warning(f"Error stopping updater: {e}")
+
+            # Stop the application
+            try:
+                await self.app.stop()
+            except Exception as e:
+                logger.warning(f"Error stopping application: {e}")
+
+            try:
+                await self.app.shutdown()
+            except Exception as e:
+                logger.warning(f"Error during application shutdown: {e}")
 
     def _schedule_periodic_scripts(self) -> None:
         """Schedule periodic scripts based on configuration."""
