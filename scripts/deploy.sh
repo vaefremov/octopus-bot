@@ -15,13 +15,13 @@ export PGPASSWORD=${PGPASSWORD:-"password"}
 export PGUSER=${PGUSER:-postgres}
 export PGHOST=${PGHOST:-localhost}
 
-PGDATABASE=${PGDATABASE:-"testdb2"}
+PGDATABASE=${PGDATABASE:-"testdb_oct"}
 
 APP_HOME=${APP_HOME:-/hdd1/DiPreview/DiBack2/}
 WORK_DIR=${WORK_DIR:-/hdd5/BACKUPS}
 REPOSITORY=${REPOSITORY:-/hdd1/DiPreview/Repositories/DI_projects/DiBack1/}
 
-export DI1_DATABASE_URL=${DI1_DATABASE_URL:-"postgresql://postgres:${PGPASSWORD}@localhost:5432/testdb2"}
+export DI1_DATABASE_URL=${DI1_DATABASE_URL:-"postgresql://postgres:${PGPASSWORD}@localhost:5432/testdb_oct"}
 export DI1_DATABASE_ECHO=${DI1_DATABASE_ECHO:-false}
 export PYTONPATH=$APP_HOME
 
@@ -69,14 +69,14 @@ $APP_HOME/stop_g.sh -t $TAG
 
 cd $WORK_DIR
 
-psql -q < ./create_testdb2.sql
+psql -q < ./create_testdb_oct.sql
 
 python $APP_HOME/create_model.py
 
 # 2. Transfer data from octopus
 cd testdb_to_octopus
 rm *.sql
-./data_transfer_testdb2.sh
+./data_transfer.sh
 
 # 3. Set up alembic
 cd $REPOSITORY
