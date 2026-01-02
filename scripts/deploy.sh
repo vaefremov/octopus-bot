@@ -18,6 +18,7 @@ export PGHOST=${PGHOST:-localhost}
 PGDATABASE=${PGDATABASE:-"testdb_oct"}
 
 APP_HOME=${APP_HOME:-/hdd1/DiPreview/DiBack2/}
+APP_HOME_SOURCE=${APP_HOME_SOURCE:-/hdd1/efremov/DItest1}
 WORK_DIR=${WORK_DIR:-/hdd5/BACKUPS}
 REPOSITORY=${REPOSITORY:-/hdd1/DiPreview/Repositories/DI_projects/DiBack1/}
 
@@ -87,6 +88,8 @@ alembic upgrade head
 python import_model_updates.py --clean model_updates.csv
 
 # 3.1 Collect orphaned files in data storage not mentioned in source database.
+# Take config from the production deployment (the octopus DB).
+cd $APP_HOME_SOURCE
 python garbage_collect.py --move
 
 # 4. Start preview server
