@@ -87,7 +87,7 @@ alembic upgrade head
 python import_model_updates.py --clean model_updates.csv
 
 # 3.1 Collect orphaned files in data storage not mentioned in source database.
-# TBD!
+python garbage_collect.py --move
 
 # 4. Start preview server
 cd $APP_HOME
