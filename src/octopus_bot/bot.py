@@ -6,13 +6,14 @@ import logging
 import os
 from datetime import datetime
 from typing import Set
+import time
 
 import schedule
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-from .config import BotConfig
+from .config import BotConfig, load_config
 from .server_ops import (
     get_cpu_load,
     get_disk_usage,
@@ -44,7 +45,19 @@ class OctopusBotHandler:
             self.chunk_size = int(getattr(config, "broadcast_chunk_size", 4000) or 4000)
         except Exception:
             self.chunk_size = 4000
+            
+        # Configuration file monitoring
+        self.config_file_path = os.getenv("CONFIG_FILE", "config/config.yaml")
+        self.config_last_modified = self._get_file_modified_time(self.config_file_path)
+        
         self._setup_handlers()
+
+    def _get_file_modified_time(self, file_path: str) -> float:
+        """Get the last modified time of a file."""
+        try:
+            return os.path.getmtime(file_path)
+        except OSError:
+            return 0
 
     def _load_subscribers(self) -> None:
         """Load subscribers from file."""
@@ -269,6 +282,58 @@ class OctopusBotHandler:
                 if "bot was blocked" in str(e).lower():
                     self.subscribers.discard(user_id)
                     self._save_subscribers()
+
+    async def broadcast_config_reload(self, success: bool, error_message: str = None) -> None:
+        """
+        Broadcast a message about configuration reload.
+        
+        Args:
+            success: Whether the reload was successful
+            error_message: Error message if reload failed
+        """
+        if success:
+            message = "✅ **Configuration Reloaded**\n\nThe bot configuration has been successfully reloaded."
+        else:
+            message = f"❌ **Configuration Reload Failed**\n\nFailed to reload configuration: {error_message}"
+            
+        # Send to all subscribers
+        for user_id in self.subscribers.copy():
+            try:
+                await self.app.bot.send_message(
+                    chat_id=user_id,
+                    text=message,
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                logger.error(f"Failed to send config reload notification to user {user_id}: {e}")
+                # Remove user if bot is blocked
+                if "bot was blocked" in str(e).lower():
+                    self.subscribers.discard(user_id)
+                    self._save_subscribers()
+
+    async def check_config_changes(self) -> None:
+        """Check if the configuration file has been modified and reload if necessary."""
+        try:
+            current_modified_time = self._get_file_modified_time(self.config_file_path)
+            if current_modified_time > self.config_last_modified:
+                logger.info("Configuration file changed, reloading...")
+                try:
+                    # Load new configuration
+                    new_config = load_config(self.config_file_path)
+                    
+                    # Update the config and last modified time
+                    self.config = new_config
+                    self.config_last_modified = current_modified_time
+                    
+                    # Broadcast success message
+                    await self.broadcast_config_reload(success=True)
+                    logger.info("Configuration reloaded successfully")
+                except Exception as e:
+                    logger.error(f"Failed to reload configuration: {e}")
+                    # Broadcast error message
+                    await self.broadcast_config_reload(success=False, error_message=str(e))
+        except Exception as e:
+            logger.error(f"Error checking config file changes: {e}")
 
     async def execute_periodic_script(self, script_name: str) -> None:
         """
@@ -516,8 +581,11 @@ class OctopusBotHandler:
             # Start scheduler task
             scheduler_task = asyncio.create_task(self._run_scheduler())
             
-            # Keep both running indefinitely
-            await asyncio.gather(polling_task, scheduler_task)
+            # Start config monitoring task
+            config_monitor_task = asyncio.create_task(self._run_config_monitor())
+            
+            # Keep all running indefinitely
+            await asyncio.gather(polling_task, scheduler_task, config_monitor_task)
         finally:
             # Cleanup on shutdown - try stopping updater in a robust way
             try:
@@ -581,6 +649,12 @@ class OctopusBotHandler:
         while True:
             schedule.run_pending()
             await asyncio.sleep(1)  # Check every second if something needs to run
+
+    async def _run_config_monitor(self) -> None:
+        """Monitor configuration file for changes."""
+        while True:
+            await self.check_config_changes()
+            await asyncio.sleep(10)  # Check every 10 seconds
 
     async def stop(self) -> None:
         """Stop the bot."""
