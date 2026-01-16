@@ -81,8 +81,9 @@ rm *.sql
 
 # 3. Set up alembic
 cd $REPOSITORY
-VERSION=$(ls -tr1 alembic/versions/ | grep -v __pycache__ | tail -1 | sed 's/_.*$//')
-python init_alembic_version.py --version $VERSION   
+# This creates the table and writes the latest version hash automatically
+alembic stamp head
+# Then run upgrade to ensure everything is perfectly in sync
 alembic upgrade head
 
 python import_model_updates.py --clean model_updates.csv
