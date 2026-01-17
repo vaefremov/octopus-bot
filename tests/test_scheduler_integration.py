@@ -76,5 +76,5 @@ periodic_scripts:
         # Verify that broadcast was called
         assert len(broadcasts) >= 1
         title, output = broadcasts[0]
-        assert "test-job" in title
+        assert "test\\-job" in title
         assert "fake-output" in output

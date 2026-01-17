@@ -24,6 +24,46 @@ from .server_ops import (
 logger = logging.getLogger(__name__)
 
 
+def escape_markdown(text: str) -> str:
+    """
+    Escape special Markdown characters in text to prevent parsing errors.
+    
+    Args:
+        text: Text to escape
+        
+    Returns:
+        Escaped text safe for Markdown parsing
+    """
+    # Escape underscores and asterisks which have special meaning in Markdown
+    # Order matters: escape backslashes first to avoid double escaping
+    escape_chars = [
+        ('\\', '\\\\'),  # Backslash first
+        ('_', '\\_'),    # Underscore
+        ('*', '\\*'),    # Asterisk
+        ('[', '\\['),    # Square brackets
+        (']', '\\]'),    # Square brackets
+        ('(', '\\('),    # Parentheses
+        (')', '\\)'),    # Parentheses
+        ('`', '\\`'),    # Backtick
+        ('>', '\\>'),    # Greater than
+        ('#', '\\#'),    # Hash
+        ('+', '\\+'),    # Plus
+        ('-', '\\-'),    # Minus
+        ('=', '\\='),    # Equals
+        ('|', '\\|'),    # Pipe
+        ('{', '\\{'),    # Curly braces
+        ('}', '\\}'),    # Curly braces
+        ('.', '\\.'),    # Period
+        ('!', '\\!'),    # Exclamation mark
+    ]
+    
+    escaped_text = text
+    for char, replacement in escape_chars:
+        escaped_text = escaped_text.replace(char, replacement)
+    
+    return escaped_text
+
+
 class OctopusBotHandler:
     """Handler for Telegram bot commands and interactions."""
 
@@ -363,7 +403,7 @@ class OctopusBotHandler:
             script_obj = Script(name=script.name, path=script.path, long_running=True)
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            title = f"Periodic Script: {script_name} ({timestamp})"
+            title = f"Periodic Script: {escape_markdown(script_name)} ({timestamp})"
 
             buffer = ""
             sent_any = False
@@ -387,7 +427,7 @@ class OctopusBotHandler:
 
             if sent_any:
                 # Final completion notification to subscribers
-                await self.broadcast_chunks(title, [f"✅ Script '{script_name}' completed."], send_title=False)
+                await self.broadcast_chunks(title, [f"✅ Script '{escape_markdown(script_name)}' completed."], send_title=False)
                 logger.info(f"Periodic script '{script_name}' completed and broadcasted")
             else:
                 logger.debug(f"Periodic script '{script_name}' produced empty output, skipping broadcast")
@@ -395,8 +435,8 @@ class OctopusBotHandler:
         except Exception as e:
             logger.error(f"Error executing periodic script '{script_name}': {e}")
             # Broadcast error to subscribers
-            error_msg = f"Error executing periodic script '{script_name}': {e}"
-            await self.broadcast_output(f"Error: {script_name}", error_msg)
+            error_msg = f"Error executing periodic script '{escape_markdown(script_name)}': {e}"
+            await self.broadcast_output(f"Error: {escape_markdown(script_name)}", error_msg)
 
     async def status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /status command - report server status."""
@@ -424,14 +464,14 @@ class OctopusBotHandler:
                         usage_percent, _ = get_disk_usage(device.path)
                         alert = "🔴" if usage_percent > device.alert_threshold else "🟢"
                         status_msg += (
-                            f"  {alert} {device.name}: {usage_percent:.1f}%"
+                            f"  {alert} {escape_markdown(device.name)}: {usage_percent:.1f}%"
                         )
                         if usage_percent > device.alert_threshold:
                             status_msg += f" (⚠️ Alert threshold: {device.alert_threshold}%)"
                         status_msg += "\n"
                     except Exception as e:
                         logger.error(f"Failed to get disk usage for {device.name}: {e}")
-                        status_msg += f"  ⚠️ {device.name}: Error - {e}\n"
+                        status_msg += f"  ⚠️ {escape_markdown(device.name)}: Error - {e}\n"
 
             await update.message.reply_text(status_msg, parse_mode="Markdown")
 
@@ -444,7 +484,7 @@ class OctopusBotHandler:
         if not context.args:
             await update.message.reply_text(
                 "Usage: /run <script_name>\n"
-                f"Available scripts: {', '.join([s.name for s in self.config.one_time_scripts])}"
+                f"Available scripts: {', '.join([escape_markdown(s.name) for s in self.config.one_time_scripts])}"
             )
             return
 
@@ -456,8 +496,8 @@ class OctopusBotHandler:
 
         if not script:
             await update.message.reply_text(
-                f"❌ Script '{script_name}' not found.\n"
-                f"Available scripts: {', '.join([s.name for s in self.config.one_time_scripts])}"
+                f"❌ Script '{escape_markdown(script_name)}' not found.\n"
+                f"Available scripts: {', '.join([escape_markdown(s.name) for s in self.config.one_time_scripts])}"
             )
             return
 
@@ -468,7 +508,7 @@ class OctopusBotHandler:
 
         try:
             await update.message.reply_text(
-                f"⏳ Running script '{script_name}'..."
+                f"⏳ Running script '{escape_markdown(script_name)}'..."
             )
 
             output = await run_script_once(script)
@@ -494,7 +534,7 @@ class OctopusBotHandler:
     async def stream_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /stream command - run a long-running script with streaming output."""
         if not context.args:
-            available = ', '.join([s.name for s in self.config.long_running_scripts]) if self.config.long_running_scripts else 'None configured'
+            available = ', '.join([escape_markdown(s.name) for s in self.config.long_running_scripts]) if self.config.long_running_scripts else 'None configured'
             await update.message.reply_text(
                 "Usage: /stream <script_name>\n"
                 f"Available scripts: {available}"
@@ -521,7 +561,7 @@ class OctopusBotHandler:
 
         if not script:
             await update.message.reply_text(
-                f"❌ Long-running script '{script_name}' not found."
+                f"❌ Long-running script '{escape_markdown(script_name)}' not found."
             )
             return
 
@@ -532,7 +572,7 @@ class OctopusBotHandler:
 
         try:
             await update.message.reply_text(
-                f"▶️ Starting long-running script '{script_name}'..."
+                f"▶️ Starting long-running script '{escape_markdown(script_name)}'..."
             )
 
             buffer = ""
@@ -555,7 +595,7 @@ class OctopusBotHandler:
                 )
 
             await update.message.reply_text(
-                f"✅ Script '{script_name}' completed."
+                f"✅ Script '{escape_markdown(script_name)}' completed."
             )
 
         except Exception as e:
