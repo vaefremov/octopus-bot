@@ -325,6 +325,9 @@ class OctopusBotHandler:
                     self.config = new_config
                     self.config_last_modified = current_modified_time
                     
+                    # Reschedule periodic scripts
+                    self._reschedule_periodic_scripts()
+                    
                     # Broadcast success message
                     await self.broadcast_config_reload(success=True)
                     logger.info("Configuration reloaded successfully")
@@ -616,6 +619,11 @@ class OctopusBotHandler:
             except Exception as e:
                 logger.warning(f"Error during application shutdown: {e}")
 
+    def _clear_scheduled_jobs(self) -> None:
+        """Clear all scheduled jobs."""
+        schedule.clear()
+        logger.info("Cleared all scheduled jobs")
+
     def _schedule_periodic_scripts(self) -> None:
         """Schedule periodic scripts based on configuration."""
         for script in self.config.periodic_scripts:
@@ -643,6 +651,12 @@ class OctopusBotHandler:
                 logger.info(f"Scheduled periodic script '{script.name}' every {interval} seconds")
             else:
                 logger.warning(f"Periodic script '{script.name}' has no interval or time configured; skipping")
+
+    def _reschedule_periodic_scripts(self) -> None:
+        """Reschedule periodic scripts after configuration change."""
+        logger.info("Rescheduling periodic scripts due to configuration change")
+        self._clear_scheduled_jobs()
+        self._schedule_periodic_scripts()
 
     async def _run_scheduler(self) -> None:
         """Run the scheduler in the background."""
