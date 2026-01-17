@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 import yaml
 
@@ -16,6 +16,11 @@ class Script:
     path: str
     long_running: bool = False
     admin_only: bool = False
+    args: List[str] = None
+
+    def __post_init__(self):
+        if self.args is None:
+            self.args = []
 
 
 @dataclass
@@ -91,6 +96,7 @@ def load_config(config_path: str | None = None) -> BotConfig:
                 path=script_data["path"],
                 long_running=True,
                 admin_only=script_data.get("admin_only", False),
+                args=script_data.get("args", []),
             )
         )
 
@@ -102,6 +108,7 @@ def load_config(config_path: str | None = None) -> BotConfig:
                 path=script_data["path"],
                 long_running=False,
                 admin_only=script_data.get("admin_only", False),
+                args=script_data.get("args", []),
             )
         )
 

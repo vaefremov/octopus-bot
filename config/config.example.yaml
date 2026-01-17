@@ -6,6 +6,8 @@ long_running_scripts:
     path: ./scripts/deploy.sh
     # If true, only admin users may invoke this via /stream or /run
     # admin_only: true
+    # Example of passing arguments to the script
+    # args: ["--verbose", "--config", "production"]
   - name: logs
     path: ./scripts/tail_logs.sh
 
@@ -15,8 +17,12 @@ one_time_scripts:
     path: ./scripts/health_check.sh
     # Example of an admin-only one-time script
     # admin_only: true
+    # Example of passing arguments to the script
+    # args: ["--check", "all"]
   - name: backup
     path: ./scripts/backup.sh
+    # Example of passing arguments to the script
+    # args: ["--destination", "/backup", "--compress"]
 
 # Periodic scripts that run automatically on schedule
 # Output is broadcast to all subscribed users

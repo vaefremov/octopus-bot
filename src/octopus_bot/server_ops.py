@@ -35,8 +35,11 @@ async def run_script_streaming(
         raise FileNotFoundError(f"Script not found: {script.path}")
 
     try:
+        # Include script arguments if provided
+        cmd = [str(script_path)] + script.args
+        
         process = await asyncio.create_subprocess_exec(
-            str(script_path),
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
@@ -79,8 +82,11 @@ async def run_script_once(script: Script) -> str:
         raise FileNotFoundError(f"Script not found: {script.path}")
 
     try:
+        # Include script arguments if provided
+        cmd = [str(script_path)] + script.args
+        
         result = await asyncio.create_subprocess_exec(
-            str(script_path),
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
