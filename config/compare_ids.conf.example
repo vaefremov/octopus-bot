@@ -1,0 +1,14 @@
+# Configuration file for compare_ids.sh
+# Copy this file to compare_ids.conf and adjust values as needed
+
+# Threshold for warning (default: 1000)
+THRESHOLD=1000
+
+# Path to start_id.txt file (optional, defaults to start_id.txt in current directory)
+START_ID_FILE=start_id.txt
+
+# Database connection parameters
+PGPASSWORD="your_database_password"
+PGUSER=postgres
+PGHOST=localhost
+PGDATABASE=octopus
