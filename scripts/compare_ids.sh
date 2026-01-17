@@ -71,7 +71,9 @@ DIFF=$((FILE_ID - DB_ID))
 
 # Compare with threshold
 if [ "$DIFF" -lt "$THRESHOLD" ]; then
-  echo "Warning: Difference between database ID ($DB_ID) and file ID ($FILE_ID) is $DIFF, which is less than threshold ($THRESHOLD)"
+  echo "❌ Warning:"
+  echo "Difference in ID between production database $PGDATABASE ($DB_ID) and test database ID ($FILE_ID from $FILE_ID_FILE) is $DIFF, which is less than threshold ($THRESHOLD)"
+  echo
   exit 0
 fi
 
