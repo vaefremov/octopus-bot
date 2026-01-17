@@ -96,7 +96,7 @@ def load_config(config_path: str | None = None) -> BotConfig:
                 path=script_data["path"],
                 long_running=True,
                 admin_only=script_data.get("admin_only", False),
-                args=script_data.get("args", []),
+                args=script_data.get("args", "").split(),
             )
         )
 
@@ -108,7 +108,7 @@ def load_config(config_path: str | None = None) -> BotConfig:
                 path=script_data["path"],
                 long_running=False,
                 admin_only=script_data.get("admin_only", False),
-                args=script_data.get("args", []),
+                args=script_data.get("args", "").split(),
             )
         )
 
