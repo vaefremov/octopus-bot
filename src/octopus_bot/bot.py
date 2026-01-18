@@ -303,7 +303,7 @@ class OctopusBotHandler:
                 if send_title:
                     await self.app.bot.send_message(
                         chat_id=user_id,
-                        text=f"📢 **{title}**",
+                        text=f"📢 **{escape_markdown(title)}**",
                         parse_mode="Markdown",
                     )
 
@@ -403,7 +403,7 @@ class OctopusBotHandler:
             script_obj = Script(name=script.name, path=script.path, long_running=True)
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            title = f"Periodic Script: {escape_markdown(script_name)} ({timestamp})"
+            title = f"Periodic Script: {script_name} ({timestamp})"
 
             buffer = ""
             sent_any = False
@@ -427,7 +427,7 @@ class OctopusBotHandler:
 
             if sent_any:
                 # Final completion notification to subscribers
-                await self.broadcast_chunks(title, [f"✅ Script '{escape_markdown(script_name)}' completed."], send_title=False)
+                await self.broadcast_chunks(title, [f"✅ Script '{script_name}' completed."], send_title=False)
                 logger.info(f"Periodic script '{script_name}' completed and broadcasted")
             else:
                 logger.debug(f"Periodic script '{script_name}' produced empty output, skipping broadcast")
@@ -484,7 +484,7 @@ class OctopusBotHandler:
         if not context.args:
             await update.message.reply_text(
                 "Usage: /run <script_name>\n"
-                f"Available scripts: {', '.join([escape_markdown(s.name) for s in self.config.one_time_scripts])}"
+                f"Available scripts: {', '.join([s.name for s in self.config.one_time_scripts])}"
             )
             return
 
@@ -496,8 +496,8 @@ class OctopusBotHandler:
 
         if not script:
             await update.message.reply_text(
-                f"❌ Script '{escape_markdown(script_name)}' not found.\n"
-                f"Available scripts: {', '.join([escape_markdown(s.name) for s in self.config.one_time_scripts])}"
+                f"❌ Script '{script_name}' not found.\n"
+                f"Available scripts: {', '.join([s.name for s in self.config.one_time_scripts])}"
             )
             return
 
@@ -508,7 +508,7 @@ class OctopusBotHandler:
 
         try:
             await update.message.reply_text(
-                f"⏳ Running script '{escape_markdown(script_name)}'..."
+                f"⏳ Running script '{script_name}'..."
             )
 
             output = await run_script_once(script)
@@ -534,7 +534,7 @@ class OctopusBotHandler:
     async def stream_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /stream command - run a long-running script with streaming output."""
         if not context.args:
-            available = ', '.join([escape_markdown(s.name) for s in self.config.long_running_scripts]) if self.config.long_running_scripts else 'None configured'
+            available = ', '.join([s.name for s in self.config.long_running_scripts]) if self.config.long_running_scripts else 'None configured'
             await update.message.reply_text(
                 "Usage: /stream <script_name>\n"
                 f"Available scripts: {available}"
@@ -561,7 +561,7 @@ class OctopusBotHandler:
 
         if not script:
             await update.message.reply_text(
-                f"❌ Long-running script '{escape_markdown(script_name)}' not found."
+                f"❌ Long-running script '{script_name}' not found."
             )
             return
 
@@ -572,7 +572,7 @@ class OctopusBotHandler:
 
         try:
             await update.message.reply_text(
-                f"▶️ Starting long-running script '{escape_markdown(script_name)}'..."
+                f"▶️ Starting long-running script '{script_name}'..."
             )
 
             buffer = ""
@@ -595,7 +595,7 @@ class OctopusBotHandler:
                 )
 
             await update.message.reply_text(
-                f"✅ Script '{escape_markdown(script_name)}' completed."
+                f"✅ Script '{script_name}' completed."
             )
 
         except Exception as e:
