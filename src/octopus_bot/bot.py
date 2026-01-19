@@ -4,12 +4,11 @@ import asyncio
 import json
 import logging
 import os
+import time
 from datetime import datetime
 from typing import Set
-import time
 
 import schedule
-
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -27,40 +26,40 @@ logger = logging.getLogger(__name__)
 def escape_markdown(text: str) -> str:
     """
     Escape special Markdown characters in text to prevent parsing errors.
-    
+
     Args:
         text: Text to escape
-        
+
     Returns:
         Escaped text safe for Markdown parsing
     """
     # Escape underscores and asterisks which have special meaning in Markdown
     # Order matters: escape backslashes first to avoid double escaping
     escape_chars = [
-        ('\\', '\\\\'),  # Backslash first
-        ('_', '\\_'),    # Underscore
-        ('*', '\\*'),    # Asterisk
-        ('[', '\\['),    # Square brackets
-        (']', '\\]'),    # Square brackets
-        ('(', '\\('),    # Parentheses
-        (')', '\\)'),    # Parentheses
-        ('`', '\\`'),    # Backtick
-        ('>', '\\>'),    # Greater than
-        ('#', '\\#'),    # Hash
-        ('+', '\\+'),    # Plus
-        ('-', '\\-'),    # Minus
-        ('=', '\\='),    # Equals
-        ('|', '\\|'),    # Pipe
-        ('{', '\\{'),    # Curly braces
-        ('}', '\\}'),    # Curly braces
-        ('.', '\\.'),    # Period
-        ('!', '\\!'),    # Exclamation mark
+        ("\\", "\\\\"),  # Backslash first
+        ("_", "\\_"),  # Underscore
+        ("*", "\\*"),  # Asterisk
+        ("[", "\\["),  # Square brackets
+        ("]", "\\]"),  # Square brackets
+        ("(", "\\("),  # Parentheses
+        (")", "\\)"),  # Parentheses
+        ("`", "\\`"),  # Backtick
+        (">", "\\>"),  # Greater than
+        ("#", "\\#"),  # Hash
+        ("+", "\\+"),  # Plus
+        ("-", "\\-"),  # Minus
+        ("=", "\\="),  # Equals
+        ("|", "\\|"),  # Pipe
+        ("{", "\\{"),  # Curly braces
+        ("}", "\\}"),  # Curly braces
+        (".", "\\."),  # Period
+        ("!", "\\!"),  # Exclamation mark
     ]
-    
+
     escaped_text = text
     for char, replacement in escape_chars:
         escaped_text = escaped_text.replace(char, replacement)
-    
+
     return escaped_text
 
 
@@ -85,11 +84,11 @@ class OctopusBotHandler:
             self.chunk_size = int(getattr(config, "broadcast_chunk_size", 4000) or 4000)
         except Exception:
             self.chunk_size = 4000
-            
+
         # Configuration file monitoring
         self.config_file_path = os.getenv("CONFIG_FILE", "config/config.yaml")
         self.config_last_modified = self._get_file_modified_time(self.config_file_path)
-        
+
         self._setup_handlers()
 
     def _get_file_modified_time(self, file_path: str) -> float:
@@ -130,7 +129,9 @@ class OctopusBotHandler:
         self.app.add_handler(CommandHandler("unsubscribe", self.unsubscribe_command))
         self.app.add_handler(CommandHandler("broadcast", self.broadcast_command))
 
-    async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def start_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Handle /start command."""
         user = update.effective_user
         await update.message.reply_text(
@@ -139,7 +140,9 @@ class OctopusBotHandler:
             "Use /subscribe to receive broadcast messages."
         )
 
-    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def help_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Handle /help command."""
         help_text = (
             "/status - Get server status (CPU load, disk usage)\n"
@@ -150,15 +153,17 @@ class OctopusBotHandler:
             "/start - Start the bot\n"
             "/help - Show this help message"
         )
-        
+
         # Add admin commands for authorized users
         if self._is_admin_user(update.effective_user.id):
             help_text += "\n\n**Admin Commands:**\n"
             help_text += "/broadcast <message> - Send broadcast to all subscribers"
-        
+
         await update.message.reply_text(help_text)
 
-    async def subscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def subscribe_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Handle /subscribe command."""
         user_id = update.effective_user.id
         if user_id not in self.subscribers:
@@ -167,25 +172,39 @@ class OctopusBotHandler:
             if self.first_subscriber is None:
                 self.first_subscriber = user_id
             self._save_subscribers()
-            await update.message.reply_text("✅ You have been subscribed to broadcast messages!")
+            await update.message.reply_text(
+                "✅ You have been subscribed to broadcast messages!"
+            )
         else:
-            await update.message.reply_text("ℹ️ You are already subscribed to broadcast messages.")
+            await update.message.reply_text(
+                "ℹ️ You are already subscribed to broadcast messages."
+            )
 
-    async def unsubscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def unsubscribe_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Handle /unsubscribe command."""
         user_id = update.effective_user.id
         if user_id in self.subscribers:
             self.subscribers.remove(user_id)
             self._save_subscribers()
-            await update.message.reply_text("✅ You have been unsubscribed from broadcast messages.")
+            await update.message.reply_text(
+                "✅ You have been unsubscribed from broadcast messages."
+            )
         else:
-            await update.message.reply_text("ℹ️ You are not currently subscribed to broadcast messages.")
+            await update.message.reply_text(
+                "ℹ️ You are not currently subscribed to broadcast messages."
+            )
 
-    async def broadcast_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def broadcast_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Handle /broadcast command - send message to all subscribers."""
         # Check if user is admin
         if not self._is_admin_user(update.effective_user.id):
-            await update.message.reply_text("❌ You don't have permission to send broadcast messages.")
+            await update.message.reply_text(
+                "❌ You don't have permission to send broadcast messages."
+            )
             return
 
         # Check if message is provided
@@ -194,14 +213,18 @@ class OctopusBotHandler:
             return
 
         message = "📢 **Broadcast Message**\n\n" + " ".join(context.args)
-        
+
         # Send broadcast to all subscribers
         successful_sends = 0
         failed_sends = 0
-        
-        for user_id in self.subscribers.copy():  # Use copy to avoid modification during iteration
+
+        for (
+            user_id
+        ) in self.subscribers.copy():  # Use copy to avoid modification during iteration
             try:
-                await self.app.bot.send_message(chat_id=user_id, text=message, parse_mode="Markdown")
+                await self.app.bot.send_message(
+                    chat_id=user_id, text=message, parse_mode="Markdown"
+                )
                 successful_sends += 1
             except Exception as e:
                 logger.error(f"Failed to send broadcast to user {user_id}: {e}")
@@ -220,10 +243,10 @@ class OctopusBotHandler:
     def _is_admin_user(self, user_id: int) -> bool:
         """
         Check if user is admin.
-        
+
         Args:
             user_id: Telegram user ID
-            
+
         Returns:
             True if user is admin, False otherwise
         """
@@ -256,7 +279,10 @@ class OctopusBotHandler:
 
         # Split output into chunks if too long
         if len(output) > self.chunk_size:
-            chunks = [output[i : i + self.chunk_size] for i in range(0, len(output), self.chunk_size)]
+            chunks = [
+                output[i : i + self.chunk_size]
+                for i in range(0, len(output), self.chunk_size)
+            ]
         else:
             chunks = [output]
 
@@ -264,19 +290,17 @@ class OctopusBotHandler:
             try:
                 # Send title
                 await self.app.bot.send_message(
-                    chat_id=user_id,
-                    text=f"📢 **{title}**",
-                    parse_mode="Markdown"
+                    chat_id=user_id, text=f"📢 ** {title} **"
                 )
-                
+
                 # Send output chunks
                 for i, chunk in enumerate(chunks):
                     await self.app.bot.send_message(
                         chat_id=user_id,
                         text=f"```\n{chunk}\n```",
-                        parse_mode="Markdown"
+                        parse_mode="Markdown",
                     )
-                    
+
             except Exception as e:
                 logger.error(f"Failed to broadcast to user {user_id}: {e}")
                 # Remove user if bot is blocked
@@ -284,7 +308,9 @@ class OctopusBotHandler:
                     self.subscribers.discard(user_id)
                     self._save_subscribers()
 
-    async def broadcast_chunks(self, title: str, chunks: list[str], send_title: bool = True) -> None:
+    async def broadcast_chunks(
+        self, title: str, chunks: list[str], send_title: bool = True
+    ) -> None:
         """
         Broadcast pre-chunked output to subscribers. Title is sent once if `send_title` is True.
 
@@ -303,8 +329,7 @@ class OctopusBotHandler:
                 if send_title:
                     await self.app.bot.send_message(
                         chat_id=user_id,
-                        text=f"📢 **{escape_markdown(title)}**",
-                        parse_mode="Markdown",
+                        text=f"📢 ** {title} **",
                     )
 
                 for chunk in chunks:
@@ -323,10 +348,12 @@ class OctopusBotHandler:
                     self.subscribers.discard(user_id)
                     self._save_subscribers()
 
-    async def broadcast_config_reload(self, success: bool, error_message: str = None) -> None:
+    async def broadcast_config_reload(
+        self, success: bool, error_message: str = None
+    ) -> None:
         """
         Broadcast a message about configuration reload.
-        
+
         Args:
             success: Whether the reload was successful
             error_message: Error message if reload failed
@@ -335,17 +362,17 @@ class OctopusBotHandler:
             message = "✅ **Configuration Reloaded**\n\nThe bot configuration has been successfully reloaded."
         else:
             message = f"❌ **Configuration Reload Failed**\n\nFailed to reload configuration: {error_message}"
-            
+
         # Send to all subscribers
         for user_id in self.subscribers.copy():
             try:
                 await self.app.bot.send_message(
-                    chat_id=user_id,
-                    text=message,
-                    parse_mode="Markdown"
+                    chat_id=user_id, text=message, parse_mode="Markdown"
                 )
             except Exception as e:
-                logger.error(f"Failed to send config reload notification to user {user_id}: {e}")
+                logger.error(
+                    f"Failed to send config reload notification to user {user_id}: {e}"
+                )
                 # Remove user if bot is blocked
                 if "bot was blocked" in str(e).lower():
                     self.subscribers.discard(user_id)
@@ -360,21 +387,23 @@ class OctopusBotHandler:
                 try:
                     # Load new configuration
                     new_config = load_config(self.config_file_path)
-                    
+
                     # Update the config and last modified time
                     self.config = new_config
                     self.config_last_modified = current_modified_time
-                    
+
                     # Reschedule periodic scripts
                     self._reschedule_periodic_scripts()
-                    
+
                     # Broadcast success message
                     await self.broadcast_config_reload(success=True)
                     logger.info("Configuration reloaded successfully")
                 except Exception as e:
                     logger.error(f"Failed to reload configuration: {e}")
                     # Broadcast error message
-                    await self.broadcast_config_reload(success=False, error_message=str(e))
+                    await self.broadcast_config_reload(
+                        success=False, error_message=str(e)
+                    )
         except Exception as e:
             logger.error(f"Error checking config file changes: {e}")
 
@@ -400,6 +429,7 @@ class OctopusBotHandler:
 
             # Execute the script as streaming
             from .config import Script
+
             script_obj = Script(name=script.name, path=script.path, long_running=True)
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -427,18 +457,30 @@ class OctopusBotHandler:
 
             if sent_any:
                 # Final completion notification to subscribers
-                await self.broadcast_chunks(title, [f"✅ Script '{script_name}' completed."], send_title=False)
-                logger.info(f"Periodic script '{script_name}' completed and broadcasted")
+                await self.broadcast_chunks(
+                    title, [f"✅ Script '{script_name}' completed."], send_title=False
+                )
+                logger.info(
+                    f"Periodic script '{script_name}' completed and broadcasted"
+                )
             else:
-                logger.debug(f"Periodic script '{script_name}' produced empty output, skipping broadcast")
+                logger.debug(
+                    f"Periodic script '{script_name}' produced empty output, skipping broadcast"
+                )
 
         except Exception as e:
             logger.error(f"Error executing periodic script '{script_name}': {e}")
             # Broadcast error to subscribers
-            error_msg = f"Error executing periodic script '{escape_markdown(script_name)}': {e}"
-            await self.broadcast_output(f"Error: {escape_markdown(script_name)}", error_msg)
+            error_msg = (
+                f"Error executing periodic script '{escape_markdown(script_name)}': {e}"
+            )
+            await self.broadcast_output(
+                f"Error: {escape_markdown(script_name)}", error_msg
+            )
 
-    async def status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def status_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Handle /status command - report server status."""
         try:
             status_msg = "📊 **Server Status**\n\n"
@@ -463,15 +505,17 @@ class OctopusBotHandler:
                     try:
                         usage_percent, _ = get_disk_usage(device.path)
                         alert = "🔴" if usage_percent > device.alert_threshold else "🟢"
-                        status_msg += (
-                            f"  {alert} {escape_markdown(device.name)}: {usage_percent:.1f}%"
-                        )
+                        status_msg += f"  {alert} {escape_markdown(device.name)}: {usage_percent:.1f}%"
                         if usage_percent > device.alert_threshold:
-                            status_msg += f" (⚠️ Alert threshold: {device.alert_threshold}%)"
+                            status_msg += (
+                                f" (⚠️ Alert threshold: {device.alert_threshold}%)"
+                            )
                         status_msg += "\n"
                     except Exception as e:
                         logger.error(f"Failed to get disk usage for {device.name}: {e}")
-                        status_msg += f"  ⚠️ {escape_markdown(device.name)}: Error - {e}\n"
+                        status_msg += (
+                            f"  ⚠️ {escape_markdown(device.name)}: Error - {e}\n"
+                        )
 
             await update.message.reply_text(status_msg, parse_mode="Markdown")
 
@@ -479,7 +523,9 @@ class OctopusBotHandler:
             logger.error(f"Error in status command: {e}")
             await update.message.reply_text(f"❌ Error getting status: {e}")
 
-    async def run_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def run_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Handle /run command - run a one-time script."""
         if not context.args:
             await update.message.reply_text(
@@ -502,20 +548,25 @@ class OctopusBotHandler:
             return
 
         # Enforce admin-only scripts
-        if getattr(script, "admin_only", False) and not self._is_admin_user(update.effective_user.id):
-            await update.message.reply_text("❌ You don't have permission to run this script.")
+        if getattr(script, "admin_only", False) and not self._is_admin_user(
+            update.effective_user.id
+        ):
+            await update.message.reply_text(
+                "❌ You don't have permission to run this script."
+            )
             return
 
         try:
-            await update.message.reply_text(
-                f"⏳ Running script '{script_name}'..."
-            )
+            await update.message.reply_text(f"⏳ Running script '{script_name}'...")
 
             output = await run_script_once(script)
 
             # Split output into chunks if too long (Telegram limit is ~4096 chars)
             if len(output) > self.chunk_size:
-                chunks = [output[i : i + self.chunk_size] for i in range(0, len(output), self.chunk_size)]
+                chunks = [
+                    output[i : i + self.chunk_size]
+                    for i in range(0, len(output), self.chunk_size)
+                ]
                 for i, chunk in enumerate(chunks):
                     await update.message.reply_text(
                         f"📄 Output (part {i + 1}/{len(chunks)}):\n```\n{chunk}\n```",
@@ -531,22 +582,25 @@ class OctopusBotHandler:
             logger.error(f"Error running script {script_name}: {e}")
             await update.message.reply_text(f"❌ Error running script: {e}")
 
-    async def stream_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def stream_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Handle /stream command - run a long-running script with streaming output."""
         if not context.args:
-            available = ', '.join([s.name for s in self.config.long_running_scripts]) if self.config.long_running_scripts else 'None configured'
+            available = (
+                ", ".join([s.name for s in self.config.long_running_scripts])
+                if self.config.long_running_scripts
+                else "None configured"
+            )
             await update.message.reply_text(
-                "Usage: /stream <script_name>\n"
-                f"Available scripts: {available}"
+                f"Usage: /stream <script_name>\nAvailable scripts: {available}"
             )
             return
 
         script_name = context.args[0]
         await self.run_streaming(update, script_name)
 
-    async def run_streaming(
-        self, update: Update, script_name: str
-    ) -> None:
+    async def run_streaming(self, update: Update, script_name: str) -> None:
         """
         Run a long-running script with streaming output.
 
@@ -566,8 +620,12 @@ class OctopusBotHandler:
             return
 
         # Enforce admin-only scripts for streaming
-        if getattr(script, "admin_only", False) and not self._is_admin_user(update.effective_user.id):
-            await update.message.reply_text("❌ You don't have permission to run this script.")
+        if getattr(script, "admin_only", False) and not self._is_admin_user(
+            update.effective_user.id
+        ):
+            await update.message.reply_text(
+                "❌ You don't have permission to run this script."
+            )
             return
 
         try:
@@ -594,9 +652,7 @@ class OctopusBotHandler:
                     parse_mode="Markdown",
                 )
 
-            await update.message.reply_text(
-                f"✅ Script '{script_name}' completed."
-            )
+            await update.message.reply_text(f"✅ Script '{script_name}' completed.")
 
         except Exception as e:
             logger.error(f"Error in streaming script {script_name}: {e}")
@@ -608,10 +664,10 @@ class OctopusBotHandler:
         # Initialize the application
         await self.app.initialize()
         await self.app.start()
-        
+
         # Schedule periodic scripts
         self._schedule_periodic_scripts()
-        
+
         # Start polling for updates
         try:
             # Start polling
@@ -620,13 +676,13 @@ class OctopusBotHandler:
                     allowed_updates=["message", "callback_query"]
                 )
             )
-            
+
             # Start scheduler task
             scheduler_task = asyncio.create_task(self._run_scheduler())
-            
+
             # Start config monitoring task
             config_monitor_task = asyncio.create_task(self._run_config_monitor())
-            
+
             # Keep all running indefinitely
             await asyncio.gather(polling_task, scheduler_task, config_monitor_task)
         finally:
@@ -640,7 +696,9 @@ class OctopusBotHandler:
                         await result
                 else:
                     # Fallbacks for different PTB versions
-                    stop_polling = getattr(self.app.updater, "stop_polling", None) or getattr(self.app.updater, "_stop_polling", None)
+                    stop_polling = getattr(
+                        self.app.updater, "stop_polling", None
+                    ) or getattr(self.app.updater, "_stop_polling", None)
                     if stop_polling:
                         res = stop_polling()
                         if asyncio.iscoroutine(res):
@@ -675,10 +733,14 @@ class OctopusBotHandler:
                             self.execute_periodic_script(script_name)
                         )
                     )
-                    logger.info(f"Scheduled periodic script '{script.name}' daily at {script.time}")
+                    logger.info(
+                        f"Scheduled periodic script '{script.name}' daily at {script.time}"
+                    )
                     continue
                 except Exception as e:
-                    logger.error(f"Failed to schedule '{script.name}' at time '{script.time}': {e}")
+                    logger.error(
+                        f"Failed to schedule '{script.name}' at time '{script.time}': {e}"
+                    )
 
             # Fallback: schedule by interval in seconds (if provided)
             if script.interval:
@@ -688,9 +750,13 @@ class OctopusBotHandler:
                         self.execute_periodic_script(script_name)
                     )
                 )
-                logger.info(f"Scheduled periodic script '{script.name}' every {interval} seconds")
+                logger.info(
+                    f"Scheduled periodic script '{script.name}' every {interval} seconds"
+                )
             else:
-                logger.warning(f"Periodic script '{script.name}' has no interval or time configured; skipping")
+                logger.warning(
+                    f"Periodic script '{script.name}' has no interval or time configured; skipping"
+                )
 
     def _reschedule_periodic_scripts(self) -> None:
         """Reschedule periodic scripts after configuration change."""
