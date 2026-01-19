@@ -196,6 +196,22 @@ class OctopusBotHandler:
                 "ℹ️ You are not currently subscribed to broadcast messages."
             )
 
+    async def broadcast_message(self, message: str):
+        successful_sends = 0
+        failed_sends = 0
+        for user_id in self.subscribers:
+            try:
+                await self.app.bot.send_message(chat_id=user_id, text=message)
+                successful_sends += 1
+            except Exception as e:
+                logger.error(f"Failed to send message to {user_id}: {e}")
+                failed_sends += 1
+                # Remove user if bot is blocked
+                if "bot was blocked" in str(e).lower():
+                    self.subscribers.discard(user_id)
+                    self._save_subscribers()
+        return successful_sends, failed_sends
+
     async def broadcast_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -218,21 +234,7 @@ class OctopusBotHandler:
         successful_sends = 0
         failed_sends = 0
 
-        for (
-            user_id
-        ) in self.subscribers.copy():  # Use copy to avoid modification during iteration
-            try:
-                await self.app.bot.send_message(
-                    chat_id=user_id, text=message, parse_mode="Markdown"
-                )
-                successful_sends += 1
-            except Exception as e:
-                logger.error(f"Failed to send broadcast to user {user_id}: {e}")
-                failed_sends += 1
-                # Remove user if bot is blocked
-                if "bot was blocked" in str(e).lower():
-                    self.subscribers.discard(user_id)
-                    self._save_subscribers()
+        await self.broadcast_message(message)
 
         await update.message.reply_text(
             f"✅ Broadcast sent!\n"
@@ -457,9 +459,7 @@ class OctopusBotHandler:
 
             if sent_any:
                 # Final completion notification to subscribers
-                await self.broadcast_chunks(
-                    title, [f"✅ Script '{script_name}' completed."], send_title=False
-                )
+                await self.broadcast_message(f"✅ Script '{script_name}' completed.")
                 logger.info(
                     f"Periodic script '{script_name}' completed and broadcasted"
                 )
