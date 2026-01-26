@@ -39,3 +39,5 @@ htmlcov/
 *.tmp
 .DS_Store
 scripts/*.conf
+
+.zed/
