@@ -29,8 +29,15 @@ class PeriodicScript:
 
     name: str
     path: str
-    interval: int | None = None  # in seconds (e.g., 3600 for hourly); optional when using `time`
+    interval: int | None = (
+        None  # in seconds (e.g., 3600 for hourly); optional when using `time`
+    )
     time: str | None = None  # optional daily time in HH:MM (24h) to run the script
+    args: List[str] = None
+
+    def __post_init__(self):
+        if self.args is None:
+            self.args = []
 
 
 @dataclass
@@ -132,6 +139,7 @@ def load_config(config_path: str | None = None) -> BotConfig:
                 path=script_data["path"],
                 interval=script_data.get("interval"),
                 time=script_data.get("time"),
+                args=script_data.get("args", "").split(),
             )
         )
 

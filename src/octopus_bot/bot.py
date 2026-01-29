@@ -431,7 +431,9 @@ class OctopusBotHandler:
             # Execute the script as streaming
             from .config import Script
 
-            script_obj = Script(name=script.name, path=script.path, long_running=True)
+            script_obj = Script(
+                name=script.name, path=script.path, long_running=True, args=script.args
+            )
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             title = f"Periodic Script: {script_name} ({timestamp})"
