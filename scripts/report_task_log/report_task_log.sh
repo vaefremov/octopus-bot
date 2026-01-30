@@ -13,6 +13,8 @@ readonly LOCK_FD=200
 readonly SCRIPT_NAME=$(basename "$0")
 readonly STATE_DIR="${REPORT_LOG_STATE_DIR:-/tmp/report_task_log_state}"
 
+LOG_WAS_ROTATED=0
+
 # Colors for error messages (only if terminal)
 if [[ -t 2 ]]; then
     readonly RED='\033[0;31m'
@@ -131,14 +133,17 @@ if [[ $CURRENT_SIZE -lt $LAST_POSITION ]]; then
     warn "Log file appears to have been rotated (current size: $CURRENT_SIZE < last position: $LAST_POSITION)"
     warn "Starting from beginning of file"
     LAST_POSITION=0
+    LOG_WAS_ROTATED=1
 fi
 
 # Calculate bytes to read
 BYTES_TO_READ=$((CURRENT_SIZE - LAST_POSITION))
 
-# If there's nothing new, exit silently
+# If there's nothing new and log was not rotated, exit silently
 if [[ $BYTES_TO_READ -eq 0 ]]; then
-    exit 0
+    if [[ $LOG_WAS_ROTATED -eq 0 ]]; then
+        exit 0
+    fi
 fi
 
 # Read new content from log file
