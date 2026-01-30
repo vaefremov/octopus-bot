@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # test_report_task_log.sh
 # Demonstrates the usage of report_task_log.sh
@@ -68,10 +68,49 @@ echo "   ---"
 echo "   ---"
 echo
 
-echo "8. Testing error handling - non-existent file:"
+echo "8. Testing log rotation to empty file:"
 echo "   $ ./report_task_log.sh /tmp/nonexistent.log"
 echo "   ---"
 ./report_task_log.sh /tmp/nonexistent.log 2>&1 || echo "   (error - expected)"
+echo "   ---"
+echo
+
+echo "9. Simulating rotation to empty file..."
+cat > "$TEST_LOG" <<'EOF'
+EOF
+echo "   Log file replaced with empty content (0 bytes)"
+echo
+
+echo "10. Run after rotation to empty - should detect rotation and update state:"
+echo "   $ ./report_task_log.sh $TEST_LOG"
+echo "   ---"
+./report_task_log.sh "$TEST_LOG" 2>&1
+echo "   ---"
+echo
+
+echo "11. Run again - should NOT show rotation warning (state was updated):"
+echo "   $ ./report_task_log.sh $TEST_LOG"
+echo "   ---"
+output=$(./report_task_log.sh "$TEST_LOG" 2>&1)
+if [[ -z "$output" ]]; then
+    echo "   (no output - correct, state was properly updated)"
+else
+    echo "$output"
+fi
+echo "   ---"
+echo
+
+echo "12. Add content to previously empty file..."
+cat >> "$TEST_LOG" <<'EOF'
+[2025-01-29 12:00:00] Content after rotation
+EOF
+echo "   Added 1 line to the file"
+echo
+
+echo "13. Run again - should show only the new line:"
+echo "   $ ./report_task_log.sh $TEST_LOG"
+echo "   ---"
+./report_task_log.sh "$TEST_LOG"
 echo "   ---"
 echo
 

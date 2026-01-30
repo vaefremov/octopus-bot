@@ -152,8 +152,9 @@ By default, state files are stored in `/tmp/report_task_log_state/`:
 ## Edge Cases Handled
 
 ✅ **First run**: Outputs all existing content  
-✅ **No new content**: Exits silently with no output  
+✅ **No new content**: Exits silently with no output (state file is still updated)  
 ✅ **Log rotation**: Detects when file is smaller and restarts from beginning  
+✅ **Log rotation to empty file**: Properly updates state even when rotated file is empty (0 bytes)  
 ✅ **Missing file**: Returns error with helpful message  
 ✅ **Concurrent runs**: Second instance exits immediately with error  
 ✅ **Corrupted state**: Resets to position 0 and continues  
