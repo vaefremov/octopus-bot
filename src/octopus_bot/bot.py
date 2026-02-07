@@ -144,7 +144,7 @@ class OctopusBotHandler:
     ) -> None:
         """Handle /help command."""
         help_text = (
-            "/status - Get server status (CPU load, disk usage)\n"
+            "/status [cpu|du] - Get server status (CPU load, disk usage)\n"
             "/run <script_name> - Run a one-time script\n"
             "/stream <script_name> - Run a long-running script with streaming output\n"
             "/subscribe - Subscribe to broadcast messages\n"
@@ -484,39 +484,45 @@ class OctopusBotHandler:
     ) -> None:
         """Handle /status command - report server status."""
         try:
+            # Check for arguments
+            arg = context.args[0].lower() if context.args else None
+            
             status_msg = "📊 **Server Status**\n\n"
 
-            # CPU load
-            try:
-                cpu_load = get_cpu_load()
-                status_msg += (
-                    f"🖥️ **CPU Load**\n"
-                    f"  1min: {cpu_load['1min']:.2f}\n"
-                    f"  5min: {cpu_load['5min']:.2f}\n"
-                    f"  15min: {cpu_load['15min']:.2f}\n\n"
-                )
-            except Exception as e:
-                logger.error(f"Failed to get CPU load: {e}")
-                status_msg += f"⚠️ Could not get CPU load: {e}\n\n"
+            # CPU load - show only if no arg or arg is 'cpu'
+            if arg is None or arg == 'cpu':
+                try:
+                    cpu_load = get_cpu_load()
+                    status_msg += (
+                        f"🖥️ **CPU Load**\n"
+                        f"  1min: {cpu_load['1min']:.2f}\n"
+                        f"  5min: {cpu_load['5min']:.2f}\n"
+                        f"  15min: {cpu_load['15min']:.2f}\n\n"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to get CPU load: {e}")
+                    status_msg += f"⚠️ Could not get CPU load: {e}\n\n"
 
-            # Disk usage
-            if self.config.monitored_devices:
-                status_msg += "💾 **Disk Usage**\n"
-                for device in self.config.monitored_devices:
-                    try:
-                        usage_percent, _ = get_disk_usage(device.path)
-                        alert = "🔴" if usage_percent > device.alert_threshold else "🟢"
-                        status_msg += f"  {alert} {escape_markdown(device.name)}: {usage_percent:.1f}%"
-                        if usage_percent > device.alert_threshold:
+            # Disk usage - show only if no arg or arg is 'du'
+            if arg is None or arg == 'du':
+                if self.config.monitored_devices:
+                    status_msg += "💾 **Disk Usage**\n"
+                    for device in self.config.monitored_devices:
+                        try:
+                            usage_percent, _ = get_disk_usage(device.path)
+                            alert = "🔴" if usage_percent > device.alert_threshold else "🟢"
+                            status_msg += f"  {alert} {escape_markdown(device.name)}: {usage_percent:.1f}%"
+                            if usage_percent > device.alert_threshold:
+                                status_msg += (
+                                    f" (⚠️ Alert threshold: {device.alert_threshold}%)"
+                                )
+                            status_msg += "\n"
+                        except Exception as e:
+                            logger.error(f"Failed to get disk usage for {device.name}: {e}")
                             status_msg += (
-                                f" (⚠️ Alert threshold: {device.alert_threshold}%)"
+                                f"  ⚠️ {escape_markdown(device.name)}: Error - {e}\n"
                             )
-                        status_msg += "\n"
-                    except Exception as e:
-                        logger.error(f"Failed to get disk usage for {device.name}: {e}")
-                        status_msg += (
-                            f"  ⚠️ {escape_markdown(device.name)}: Error - {e}\n"
-                        )
+                    status_msg += "\n"
 
             await update.message.reply_text(status_msg, parse_mode="Markdown")
 
