@@ -553,7 +553,9 @@ class OctopusBotHandler:
                 f"Available scripts: {', '.join([s.name for s in self.config.one_time_scripts])}"
             )
             return
-
+        # Add command arguments to script args
+        if len(context.args) > 1:
+            script.args.extend(context.args[1:])
         # Enforce admin-only scripts
         if getattr(script, "admin_only", False) and not self._is_admin_user(
             update.effective_user.id
