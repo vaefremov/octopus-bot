@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 # Example long-running script that simulates deployment
 # This script demonstrates streaming output via the bot
 
@@ -20,7 +20,7 @@ PGDATABASE=${PGDATABASE:-"testdb_oct"}
 APP_HOME=${APP_HOME:-/hdd1/DiPreview/DiBack2/}
 APP_HOME_SOURCE=${APP_HOME_SOURCE:-/hdd1/efremov/DItest1}
 WORK_DIR=${WORK_DIR:-/hdd5/BACKUPS}
-REPOSITORY=${REPOSITORY:-/hdd1/DiPreview/Repositories/DI_projects/DiBack1/}
+REPOSITORY=${REPOSITORY:-/hdd1/DiPreview/Repositories/DiBack1/}
 
 export DI1_DATABASE_URL=${DI1_DATABASE_URL:-"postgresql://postgres:${PGPASSWORD}@localhost:5432/testdb_oct"}
 export DI1_DATABASE_ECHO=${DI1_DATABASE_ECHO:-false}
