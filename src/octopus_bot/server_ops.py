@@ -95,7 +95,9 @@ async def run_script_once(script: Script) -> str:
         output = stdout.decode("utf-8", errors="replace")
 
         if result.returncode != 0:
-            logger.warning(f"Script {script.name} exited with code {result.returncode}")
+            logger.warning(
+                f"Script {script.name} exited with code {result.returncode} run as {cmd}"
+            )
 
         return output
 
