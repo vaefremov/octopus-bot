@@ -486,11 +486,11 @@ class OctopusBotHandler:
         try:
             # Check for arguments
             arg = context.args[0].lower() if context.args else None
-            
+
             status_msg = "📊 **Server Status**\n\n"
 
             # CPU load - show only if no arg or arg is 'cpu'
-            if arg is None or arg == 'cpu':
+            if arg is None or arg == "cpu":
                 try:
                     cpu_load = get_cpu_load()
                     status_msg += (
@@ -504,13 +504,15 @@ class OctopusBotHandler:
                     status_msg += f"⚠️ Could not get CPU load: {e}\n\n"
 
             # Disk usage - show only if no arg or arg is 'du'
-            if arg is None or arg == 'du':
+            if arg is None or arg == "du":
                 if self.config.monitored_devices:
                     status_msg += "💾 **Disk Usage**\n"
                     for device in self.config.monitored_devices:
                         try:
                             usage_percent, _ = get_disk_usage(device.path)
-                            alert = "🔴" if usage_percent > device.alert_threshold else "🟢"
+                            alert = (
+                                "🔴" if usage_percent > device.alert_threshold else "🟢"
+                            )
                             status_msg += f"  {alert} {escape_markdown(device.name)}: {usage_percent:.1f}%"
                             if usage_percent > device.alert_threshold:
                                 status_msg += (
@@ -518,7 +520,9 @@ class OctopusBotHandler:
                                 )
                             status_msg += "\n"
                         except Exception as e:
-                            logger.error(f"Failed to get disk usage for {device.name}: {e}")
+                            logger.error(
+                                f"Failed to get disk usage for {device.name}: {e}"
+                            )
                             status_msg += (
                                 f"  ⚠️ {escape_markdown(device.name)}: Error - {e}\n"
                             )
@@ -553,9 +557,20 @@ class OctopusBotHandler:
                 f"Available scripts: {', '.join([s.name for s in self.config.one_time_scripts])}"
             )
             return
-        # Add command arguments to script args
+        # Create a copy of script with combined args (default args + command args)
+        from .config import Script
+
+        script_args = script.args.copy() if script.args else []
         if len(context.args) > 1:
-            script.args.extend(context.args[1:])
+            script_args.extend(context.args[1:])
+
+        script = Script(
+            name=script.name,
+            path=script.path,
+            long_running=script.long_running,
+            admin_only=script.admin_only,
+            args=script_args,
+        )
         # Enforce admin-only scripts
         if getattr(script, "admin_only", False) and not self._is_admin_user(
             update.effective_user.id
