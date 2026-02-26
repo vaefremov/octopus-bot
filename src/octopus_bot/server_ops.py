@@ -37,7 +37,7 @@ async def run_script_streaming(
     try:
         # Include script arguments if provided
         cmd = [str(script_path)] + script.args
-        
+
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -55,7 +55,7 @@ async def run_script_streaming(
 
         if process.returncode != 0:
             logger.warning(
-                f"Script {script.name} exited with code {process.returncode}"
+                f"Script {script.name} exited with code {process.returncode} started as {cmd}"
             )
 
     except Exception as e:
@@ -84,7 +84,7 @@ async def run_script_once(script: Script) -> str:
     try:
         # Include script arguments if provided
         cmd = [str(script_path)] + script.args
-        
+
         result = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -95,9 +95,7 @@ async def run_script_once(script: Script) -> str:
         output = stdout.decode("utf-8", errors="replace")
 
         if result.returncode != 0:
-            logger.warning(
-                f"Script {script.name} exited with code {result.returncode}"
-            )
+            logger.warning(f"Script {script.name} exited with code {result.returncode}")
 
         return output
 
