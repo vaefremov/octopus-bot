@@ -40,6 +40,12 @@ periodic_scripts:
 # How many characters to include per broadcast message chunk. Defaults to 4000.
 broadcast_chunk_size: 4000
 
+# Optional HTTP or SOCKS5 proxy for Bot API connections (overridden by PROXY_URL env var).
+# Examples:
+#   proxy: "http://host:port"
+#   proxy: "socks5://user:password@host:port"
+# proxy: "socks5://217.144.189.158:1080"
+
 # Devices/paths to monitor for disk usage
 monitored_devices:
   - name: root

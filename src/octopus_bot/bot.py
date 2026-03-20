@@ -10,6 +10,7 @@ from typing import Set
 import schedule
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.request import HTTPXRequest
 
 from .config import BotConfig, load_config
 from .server_ops import (
@@ -73,7 +74,11 @@ class OctopusBotHandler:
             config: Bot configuration
         """
         self.config = config
-        self.app = Application.builder().token(config.telegram_token).build()
+        builder = Application.builder().token(config.telegram_token)
+        if config.proxy:
+            logger.info("Using proxy: %s", config.proxy)
+            builder = builder.request(HTTPXRequest(proxy=config.proxy))
+        self.app = builder.build()
         self.subscribers: Set[int] = set()
         self.first_subscriber: int | None = None
         self.subscribers_file = "subscribers.json"

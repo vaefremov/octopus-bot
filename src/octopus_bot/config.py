@@ -59,6 +59,7 @@ class BotConfig:
     monitored_devices: list[DeviceMonitor]
     periodic_scripts: list[PeriodicScript]
     broadcast_chunk_size: int = 4000
+    proxy: str | None = None  # HTTP/SOCKS5 proxy URL, e.g. "socks5://host:port"
 
 
 def load_config(config_path: str | None = None) -> BotConfig:
@@ -143,6 +144,8 @@ def load_config(config_path: str | None = None) -> BotConfig:
             )
         )
 
+    proxy = os.getenv("PROXY_URL") or data.get("proxy") or None
+
     return BotConfig(
         telegram_token=telegram_token,
         long_running_scripts=long_running_scripts,
@@ -150,4 +153,5 @@ def load_config(config_path: str | None = None) -> BotConfig:
         monitored_devices=monitored_devices,
         periodic_scripts=periodic_scripts,
         broadcast_chunk_size=int(data.get("broadcast_chunk_size", 4000)),
+        proxy=proxy,
     )
