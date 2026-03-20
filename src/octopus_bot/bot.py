@@ -694,6 +694,14 @@ class OctopusBotHandler:
         await self.app.initialize()
         await self.app.start()
 
+        # Verify connectivity by calling getMe
+        try:
+            me = await self.app.bot.get_me()
+            logger.info("Connected to Telegram as @%s (id=%d)", me.username, me.id)
+        except Exception as e:
+            logger.error("Failed to connect to Telegram: %s", e)
+            raise
+
         # Schedule periodic scripts
         self._schedule_periodic_scripts()
 
