@@ -77,7 +77,11 @@ class OctopusBotHandler:
         builder = Application.builder().token(config.telegram_token)
         if config.proxy:
             logger.info("Using proxy: %s", config.proxy)
-            builder = builder.request(HTTPXRequest(proxy=config.proxy))
+            builder = (
+                builder
+                .request(HTTPXRequest(proxy=config.proxy))
+                .get_updates_request(HTTPXRequest(proxy=config.proxy))
+            )
         self.app = builder.build()
         self.subscribers: Set[int] = set()
         self.first_subscriber: int | None = None
