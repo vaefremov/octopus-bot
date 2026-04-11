@@ -731,6 +731,9 @@ class OctopusBotHandler:
         # Schedule periodic scripts
         self._schedule_periodic_scripts()
 
+        # Broadcast startup notification to all subscribers
+        await self.broadcast_message("🟢 Bot started.")
+
         # Start polling for updates
         try:
             # Start polling
