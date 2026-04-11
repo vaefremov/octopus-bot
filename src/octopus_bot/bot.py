@@ -97,6 +97,8 @@ class OctopusBotHandler:
         self.config_file_path = os.getenv("CONFIG_FILE", "config/config.yaml")
         self.config_last_modified = self._get_file_modified_time(self.config_file_path)
 
+        self._main_tasks: list[asyncio.Task] = []
+
         self._setup_handlers()
 
     def _get_file_modified_time(self, file_path: str) -> float:
@@ -136,6 +138,7 @@ class OctopusBotHandler:
         self.app.add_handler(CommandHandler("subscribe", self.subscribe_command))
         self.app.add_handler(CommandHandler("unsubscribe", self.unsubscribe_command))
         self.app.add_handler(CommandHandler("broadcast", self.broadcast_command))
+        self.app.add_handler(CommandHandler("shutdown", self.shutdown_command))
 
     async def start_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -165,7 +168,8 @@ class OctopusBotHandler:
         # Add admin commands for authorized users
         if self._is_admin_user(update.effective_user.id):
             help_text += "\n\n**Admin Commands:**\n"
-            help_text += "/broadcast <message> - Send broadcast to all subscribers"
+            help_text += "/broadcast <message> - Send broadcast to all subscribers\n"
+            help_text += "/shutdown - Stop the bot"
 
         await update.message.reply_text(help_text)
 
@@ -249,6 +253,24 @@ class OctopusBotHandler:
             f"Successful: {successful_sends}\n"
             f"Failed: {failed_sends}"
         )
+
+    async def shutdown_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle /shutdown command - stop the bot (admin only)."""
+        if not self._is_admin_user(update.effective_user.id):
+            await update.message.reply_text(
+                "❌ You don't have permission to shut down the bot."
+            )
+            return
+
+        logger.info(
+            "Shutdown requested by user %d", update.effective_user.id
+        )
+        await update.message.reply_text("🛑 Shutting down the bot. Goodbye!")
+
+        for task in self._main_tasks:
+            task.cancel()
 
     def _is_admin_user(self, user_id: int) -> bool:
         """
@@ -723,6 +745,8 @@ class OctopusBotHandler:
 
             # Start config monitoring task
             config_monitor_task = asyncio.create_task(self._run_config_monitor())
+
+            self._main_tasks = [polling_task, scheduler_task, config_monitor_task]
 
             # Keep all running indefinitely
             await asyncio.gather(polling_task, scheduler_task, config_monitor_task)
