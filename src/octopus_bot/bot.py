@@ -16,6 +16,7 @@ from .config import BotConfig, load_config
 from .server_ops import (
     get_cpu_load,
     get_disk_usage,
+    get_uptime,
     run_script_once,
     run_script_streaming,
 )
@@ -156,7 +157,7 @@ class OctopusBotHandler:
     ) -> None:
         """Handle /help command."""
         help_text = (
-            "/status [cpu|du] - Get server status (CPU load, disk usage)\n"
+            "/status [cpu|du|uptime] - Get server status (CPU load, disk usage, uptime)\n"
             "/run <script_name> - Run a one-time script\n"
             "/stream <script_name> - Run a long-running script with streaming output\n"
             "/subscribe - Subscribe to broadcast messages\n"
@@ -519,6 +520,15 @@ class OctopusBotHandler:
             arg = context.args[0].lower() if context.args else None
 
             status_msg = "📊 **Server Status**\n\n"
+
+            # Uptime - show only if no arg or arg is 'uptime'
+            if arg is None or arg == "uptime":
+                try:
+                    uptime = get_uptime()
+                    status_msg += f"⏱️ **Uptime:** {uptime}\n\n"
+                except Exception as e:
+                    logger.error(f"Failed to get uptime: {e}")
+                    status_msg += f"⚠️ Could not get uptime: {e}\n\n"
 
             # CPU load - show only if no arg or arg is 'cpu'
             if arg is None or arg == "cpu":

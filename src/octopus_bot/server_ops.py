@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -125,6 +126,30 @@ def get_disk_usage(device_path: str) -> tuple[float, float]:
     except Exception as e:
         logger.error(f"Error getting disk usage for {device_path}: {e}")
         raise RuntimeError(f"Failed to get disk usage for {device_path}") from e
+
+
+def get_uptime() -> str:
+    """
+    Get system uptime as a human-readable string.
+
+    Returns:
+        Uptime string like "3d 14h 22m"
+    """
+    try:
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        delta = datetime.now() - boot_time
+        total_seconds = int(delta.total_seconds())
+        days, remainder = divmod(total_seconds, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes = remainder // 60
+        if days > 0:
+            return f"{days}d {hours}h {minutes}m"
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
+    except Exception as e:
+        logger.error(f"Error getting uptime: {e}")
+        raise RuntimeError("Failed to get uptime") from e
 
 
 def get_cpu_load() -> dict[str, float]:
