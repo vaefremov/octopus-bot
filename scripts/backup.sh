@@ -12,7 +12,7 @@ if [ -n "${CONFIG:-}" ] && [ -f "$CONFIG" ]; then
 fi
 
 WHERE_BACKUP=${WHERE_BACKUP:-/hdd5/BACKUPS}
-DB_NAMES=${DB_NAMES:-octopus octopus_test}
+DB_NAMES=${DB_NAMES:-octopus testdb_oct}
 
 export PGPASSWORD=${PGPASSWORD:-"password_should_be_secret"}
 export PGUSER=${PGUSER:-postgres}
