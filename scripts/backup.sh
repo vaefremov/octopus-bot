@@ -12,8 +12,7 @@ if [ -n "${CONFIG:-}" ] && [ -f "$CONFIG" ]; then
 fi
 
 WHERE_BACKUP=${WHERE_BACKUP:-/hdd5/BACKUPS}
-DB_NAME1=${DB_NAME1:-octopus}
-DB_NAME2=${DB_NAME2:-octopus_test}
+DB_NAMES=${DB_NAMES:-octopus octopus_test}
 
 export PGPASSWORD=${PGPASSWORD:-"password_should_be_secret"}
 export PGUSER=${PGUSER:-postgres}
@@ -22,13 +21,17 @@ export PGHOST=${PGHOST:-localhost}
 echo "Starting backup process..."
 echo "Backup will be created here: $WHERE_BACKUP"
 sleep 1
-BACKUP_NAME="${DB_NAME1}_"$(date +%Y-%m-%d_%H-%M-%S).sql
-BACKUP_TO=$WHERE_BACKUP/$BACKUP_NAME
-echo "Backing up PostgreSQL database to $BACKUP_TO"
 
-pg_dump  --file=$BACKUP_TO --create --clean  $DB_NAME1
-gzip $BACKUP_TO
+for DB_NAME in $DB_NAMES; do
+  BACKUP_NAME="${DB_NAME}_"$(date +%Y-%m-%d_%H-%M-%S).sql
+  BACKUP_TO=$WHERE_BACKUP/$BACKUP_NAME
+  echo "Backing up PostgreSQL database to $BACKUP_TO"
 
-echo "$DB_NAME1 Backup completed successfully!"
-
-echo "Backup size: $(du -h ${BACKUP_TO}.gz | awk '{print $1}')"
+  if pg_dump --file=$BACKUP_TO --create --clean "$DB_NAME"; then
+    gzip "$BACKUP_TO"
+    echo "$DB_NAME Backup completed successfully!"
+    echo "Backup size: $(du -h ${BACKUP_TO}.gz | awk '{print $1}')"
+  else
+    echo "$DB_NAME Backup FAILED!"
+  fi
+done
