@@ -11,7 +11,9 @@ if [ -n "${CONFIG:-}" ] && [ -f "$CONFIG" ]; then
   source "$CONFIG"
 fi
 
-export PGPASSWORD=${PGPASSWORD:-"password"}
+# Credentials come from deploy.conf (0600, gitignored) or the environment;
+# no defaults here, so the script never carries a password.
+export PGPASSWORD="${PGPASSWORD:?PGPASSWORD not set - put it in scripts/deploy.conf}"
 export PGUSER=${PGUSER:-postgres}
 export PGHOST=${PGHOST:-localhost}
 
@@ -22,7 +24,7 @@ APP_HOME_SOURCE=${APP_HOME_SOURCE:-/hdd1/efremov/DItest1}
 WORK_DIR=${WORK_DIR:-/hdd5/BACKUPS}
 REPOSITORY=${REPOSITORY:-/hdd1/DiPreview/Repositories/DiBack1/}
 
-export DI1_DATABASE_URL=${DI1_DATABASE_URL:-"postgresql://postgres:${PGPASSWORD}@localhost:5432/testdb_oct"}
+export DI1_DATABASE_URL="${DI1_DATABASE_URL:?DI1_DATABASE_URL not set - put it in scripts/deploy.conf}"
 export DI1_DATABASE_ECHO=${DI1_DATABASE_ECHO:-false}
 export PYTONPATH=$APP_HOME
 
