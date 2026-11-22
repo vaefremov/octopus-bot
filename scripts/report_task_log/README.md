@@ -223,3 +223,23 @@ This will demonstrate all features including incremental reading, log rotation h
 ## License
 
 MIT License - Feel free to use and modify as needed.
+
+## report_journal.sh (journald tasks)
+
+`report_journal.sh <unit>...` is the journal counterpart of `report_task_log.sh`
+for tasks whose output goes to systemd's journal instead of a file. It keeps a
+journald *cursor* per task (not a byte offset), so each run reports exactly the
+entries after the previous one, and the first run records the current position
+without replaying history. An invalid cursor (journal rotated, host rebooted) is
+reported on stderr and the task restarts from "now".
+
+In use since 2026-11-21 for the diserv production deployers, which moved to
+systemd: `server-update-9990` follows `di-deploy-diback1`, `apps-deployer-prod`
+follows `di-deploy-pyapps`. Preview still uses file mode.
+
+```yaml
+  - name: server-update-9990
+    path: scripts/report_task_log/report_journal.sh
+    args: di-deploy-diback1
+    interval: 60
+```
